@@ -1,0 +1,246 @@
+<html>
+  <head>
+    <title>Drupal Sib</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <link href="style.css" rel="stylesheet" type="text/css" />
+  </head>
+  <body>
+    <div id="ds_page">
+      <div id="ds_page_inner">
+        <div class="ds_login"><img src="images/icon_login.png" class="icon_login" alt="login"/><span><a href="#">&nbsp регистрация</a></span></div>
+        <div id="ds_header">
+          <div class="ds_header_top">
+            <div class="ds_header_logo"><a href="index.html"><img src="images/logo.png" alt="logo"/></a><span>Сообщество друпаллеров Сибири</span></div>
+          </div>
+          <div class="ds_header_bottom">
+            <div class="ds_header_menu">
+              <ul class="menu">
+                <li class="homepage"><a href="index.html"><img src="images/pic-menu-hp.png" alt="homepage"/></a></li>
+                <li><a href="#">cine</a></li>
+                <li><a href="#">culture</a></li>
+                <li><a href="#">high tech</a></li>
+                <li><a href="#">videos</a></li>
+                <li class="orange"><a href="#">high tech</a></li>
+                <li class="orange"><a href="#">videos</a></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+        <div id="ds_main">
+          <div id="ds_main_inner">
+            <div id="ds_main_left">
+              <div id="block-user-login" class="block block-user">
+                <h1>User login</h1>
+              </div>
+              <form action="/node?destination=node" method="post" id="user-login-form" accept-charset="UTF-8">
+                <div>
+                  <div class="form-item form-type-textfield form-item-name">
+                    <label for="edit-name">Username: <span class="form-required" title="This field is required.">*</span></label>
+                    <input type="text" id="edit-name" name="name" value="" size="15" maxlength="60" class="form-text required" />
+                  </div>
+                  <div class="form-item form-type-password form-item-pass">
+                    <label for="edit-pass">Password: <span class="form-required" title="This field is required.">*</span></label>
+                    <input type="password" id="edit-pass" name="pass" size="15" maxlength="60" class="form-text required" />
+                    <div class="item-list">
+                      <ul>
+                        <li class="first">
+                          <a href="/user/register" title="Create a new user account.">Create new account</a>
+                        </li>
+                        <li class="last">
+                          <a href="/user/password" title="Request new password via e-mail.">Request new password</a>
+                        </li>
+                      </ul>
+                    </div>
+                    <input type="hidden" name="form_build_id" value="form-8EVaiMc7xVcd8m1soA5x3YY6djCDSB1X2VhHCwljkzE" />
+                    <input type="hidden" name="form_id" value="user_login_block" />
+                    <div class="form-actions form-wrapper" id="edit-actions">
+                      <input type="submit" id="edit-submit" name="op" value="Войти пользователю" class="form-submit" />
+                    </div>
+                  </div>
+                </div>
+              </form>
+              <fieldset class="group-profile-my-adding-info">
+                <legend>Список</legend>
+                <div class="form-item">
+                  <label for="edit-field-profile-learned-from-value">Откуда узнали: <span class="form-required" title="Это поле обязательно">*</span></label>
+                  <select name="field_profile_learned_from[value]" class="form-select required" id="edit-field-profile-learned-from-value">
+                    <option value="1">СМИ</option>
+                    <option value="2">Учебное заведение</option>
+                    <option value="3">От друзей</option>
+                    <option value="4">С места работы</option>
+                    <option value="5" selected="selected">Другое</option></select>
+                </div>
+              </fieldset>
+
+              <fieldset class="group-profile-my-adding-info">
+                <legend>Ratio</legend>
+                <div class="form-radios">
+                  <div class="form-item">
+                    <label class="option" for="edit-field-project-member-stage-dev-value-">
+                      <input type="radio" name="field_project_member_stage_dev[value]" value="" checked="checked" class="form-radio"> нет</label>
+                  </div>
+                  <div class="form-item">
+                    <label class="option" for="edit-field-project-member-stage-dev-value-pre-seed-stage">
+                      <input type="radio" name="field_project_member_stage_dev[value]" value="pre_seed_stage" class="form-radio"> Lorem ipsum dolor sit amet</label>
+                  </div>
+                  <div class="form-item" id="edit-field-project-member-stage-dev-value-seed-stage-wrapper">
+                    <label class="option" for="edit-field-project-member-stage-dev-value-seed-stage">
+                      <input type="radio" id="edit-field-project-member-stage-dev-value-seed-stage" name="field_project_member_stage_dev[value]" value="seed_stage" class="form-radio"> Lorem ipsum dolor sit amet</label>
+                  </div>
+                  <div class="form-item" id="edit-field-project-member-stage-dev-value-startup-stage-wrapper">
+                    <label class="option" for="edit-field-project-member-stage-dev-value-startup-stage">
+                      <input type="radio" id="edit-field-project-member-stage-dev-value-startup-stage" name="field_project_member_stage_dev[value]" value="startup_stage" class="form-radio"> Lorem ipsum dolor sit amet</label>
+                  </div>
+                  <div class="form-item" id="edit-field-project-member-stage-dev-value-growth-stage-wrapper">
+                    <label class="option" for="edit-field-project-member-stage-dev-value-growth-stage">
+                      <input type="radio" id="edit-field-project-member-stage-dev-value-growth-stage" name="field_project_member_stage_dev[value]" value="growth_stage" class="form-radio"> Lorem ipsum dolor sit amet</label>
+                  </div>
+                  <div class="form-item" id="edit-field-project-member-stage-dev-value-exit-stage-wrapper">
+                    <label class="option" for="edit-field-project-member-stage-dev-value-exit-stage">
+                      <input type="radio" id="edit-field-project-member-stage-dev-value-exit-stage" name="field_project_member_stage_dev[value]" value="exit_stage" class="form-radio"> Lorem ipsum dolor sit amet</label>
+                  </div>
+                </div>
+              </fieldset>
+
+              <fieldset class="group-profile-my-adding-info">
+                <legend>Check Box</legend>
+                <div class="form-item" id="edit-field-profile-need-hostel-value-wrapper">
+                  <label class="option" for="edit-field-profile-need-hostel-value">
+                    <input type="checkbox" name="field_profile_need_hostel[value]" id="edit-field-profile-need-hostel-value" value="1" class="form-checkbox"> Lorem ipsum dolor sit amet
+                  </label>
+                </div>
+                <div class="form-item" id="edit-field-profile-need-computer-value-wrapper">
+                  <label class="option" for="edit-field-profile-need-computer-value">
+                    <input type="checkbox" name="field_profile_need_computer[value]" id="edit-field-profile-need-computer-value" value="1" class="form-checkbox"> Lorem ipsum dolor sit amet</label>
+                </div>
+              </fieldset>
+
+              <div class="form-item" id="edit-field-user-agreement-0-value-wrapper">
+                <label for="edit-field-user-agreement-0-value">Соглашение:</label>
+                <div class="resizable-textarea">
+                  <span>
+                    <textarea cols="60" rows="5" name="field_user_agreement[0][value]" id="edit-field-user-agreement-0-value" class="form-textarea resizable textarea-processed" readonly="">
+Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nunc at arcu lectus, non ultricies ipsum. Nam posuere enim vel eros ullamcorper gravida. Integer aliquet purus vel mauris mollis vehicula. Sed nisl felis, auctor sed mollis laoreet, iaculis in arcu. Nullam at accumsan nunc.
+ Aliquam gravida tincidunt dui non mollis. Nulla sit amet erat urna.
+Sed porta sem id magna aliquam fermentum. Sed sollicitudin est eget purus vulputate vel ullamcorper ipsum laoreet.
+Etiam tellus risus, ultricies ac dapibus id, varius at augue. In hac habitasse platea dictumst.
+Fusce sit amet ipsum at leo scelerisque viverra. Proin quis quam risus, ut cursus leo. Quisque sagittis ligula a
+nisi rutrum at consectetur diam volutpat. Morbi blandit mauris lacus. Morbi lacinia, mi sit amet commodo iaculis,
+augue est interdum dolor, nec malesuada risus risus ac ligula. Sed pharetra ultrices lectus in vehicula. Maecenas eu eros arcu, ut semper lorem.
+Nulla viverra tellus in tortor dictum convallis. Ut orci elit, aliquet vitae ultricies sit amet, ultrices eget magna.
+                    </textarea>
+                    <div class="grippie">
+
+                    </div>
+                  </span>
+                </div>
+              </div>
+              <div class="form-item" id="edit-field-user-agreement-1-value-wrapper">
+                <label class="option" for="edit-field-user-agreement-1-value">
+                  <input type="checkbox" name="field_user_agreement_1[value]" id="edit-field-user-agreement-1-value" value="1" class="form-checkbox"> Я согласен</label>
+              </div>
+              <input type="submit" name="op" id="edit-submit" value="Регистрация" class="form-submit">
+            </div>
+            <div id="ds_main_sidebar">
+              <div class="ds_sidebar_content">
+                <div id="ds_search"></div>
+              </div>
+              <div class="ds_sidebar_content">
+                <div id="ds_fb_block">
+                  <script type="text/javascript" src="http://userapi.com/js/api/openapi.js?49"></script>
+                  <!-- VK Widget -->
+                  <div id="vk_groups"></div>
+                  <script type="text/javascript">
+                    VK.Widgets.Group("vk_groups", {mode: 0, width: "220", height: "430"}, 26642114);
+                  </script>
+                </div>
+                <div id="ds_tw_block">
+                  <script charset="utf-8" src="http://widgets.twimg.com/j/2/widget.js"></script>
+                  <script>
+                    new TWTR.Widget({
+                      version: 2,
+                      type: 'profile',
+                      rpp: 4,
+                      interval: 30000,
+                      width: 220,
+                      height: 300,
+                      theme: {
+                        shell: {
+                          background: '#9e9e9e',
+                          color: '#ffffff'
+                        },
+                        tweets: {
+                          background: '#e0e0e0',
+                          color: '#241f24',
+                          links: '#1453cf'
+                        }
+                      },
+                      features: {
+                        scrollbar: false,
+                        loop: false,
+                        live: false,
+                        behavior: 'all'
+                      }
+                    }).render().setUser('DrupalSib').start();
+                  </script>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id="ds_footer">
+      <div id="ds_footer_top">
+        <div class="ds_footer_cells">
+          <div id="ds_footer_title"><h3>Меню</h3></div>
+          <ul id="block-four">
+            <li><a href="#">Пункт меню 1</a></li>
+            <li><a href="#">Пункт меню 2</a></li>
+            <li><a href="#">Пункт меню 3</a></li>
+            <li><a href="#">Пункт меню 4</a></li>
+          </ul>
+        </div>
+        <div class="ds_footer_cells">
+          <div id="ds_footer_title"><h3>Меню</h3></div>
+          <ul id="block-one">
+            <li><a href="#">Пункт меню 1</a></li>
+            <li><a href="#">Пункт меню 2</a></li>
+            <li><a href="#">Пункт меню 3</a></li>
+            <li><a href="#">Пункт меню 4</a></li>
+          </ul>
+        </div>
+        <div class="ds_footer_cells">
+          <div id="ds_footer_title"><h3>Меню</h3></div>
+          <ul id="block-three">
+            <li><a href="#">Пункт меню 1</a></li>
+            <li><a href="#">Пункт меню 2</a></li>
+            <li><a href="#">Пункт меню 3</a></li>
+            <li><a href="#">Пункт меню 4</a></li>
+          </ul>
+        </div>
+        <div class="ds_footer_cells">
+          <div id="ds_footer_title"><h3>Меню</h3></div>
+          <ul id="block-two">
+            <li><a href="#">Пункт меню 1</a></li>
+            <li><a href="#">Пункт меню 2</a></li>
+            <li><a href="#">Пункт меню 3</a></li>
+            <li><a href="#">Меню 4</a></li>
+          </ul>
+        </div>
+      </div>
+      <div id="ds_footer_bottom">
+        <div><span class="textin">njnj</span>
+          <ul>
+            <li><a href="#">кино</a></li>
+            <li><a href="#">культура</a></li>
+            <li><a href="#">технол</a></li>
+            <li><a href="#">видео</a></li>
+            <li><a href="#">хайтек</a></li>
+            <li><a href="#">видео</a></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
