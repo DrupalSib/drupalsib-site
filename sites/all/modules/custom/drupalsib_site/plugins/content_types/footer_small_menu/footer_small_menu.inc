@@ -1,5 +1,4 @@
 <?php
-
 $plugin = array(
   'title' => t('footer_small_menu'),
   'single' => TRUE,
@@ -13,18 +12,24 @@ $plugin = array(
 );
 
 function drupalsib_site_footer_small_menu_content_type_render($subtype, $conf, $panel_args) {
-  global $base_url;
-//$search =  drupal_get_form('search_block_form');  
   $menu_list = drupalsib_site_footer_small_menu_menus();
   
-  $main_menu_tree = menu_tree($conf['selected_menu']);//menu_tree_page_data('main-menu'); 
-  foreach ($main_menu_tree as $mid => $key){
-    if (isset($key['#title'])){
-      $footer_menu[] = '<li>' . l($key['#title'], $key['#href']) . '</li>';
+  $main_menu_tree = menu_tree_page_data($conf['selected_menu']);
+  $footer_menu = array();
+  foreach ($main_menu_tree as $id => $result) {
+    if (!$result['link']['hidden']) {
+      $footer_menu[$id]['title'] = $result['link']['link_title'];
+      $footer_menu[$id]['url'] = $result['link']['link_path'];
+      $footer_menu[$id]['active'] = $result['link']['in_active_trail'];
     }
   }
-  
-  $output = theme('drupalsib_site_footer_small_menu', array('footer_menu' => $footer_menu));
+  $footer_menu_html = array();
+  if (!empty($footer_menu)) {
+    foreach ($footer_menu as $key){
+        $footer_menu_html[] = l($key['title'], $key['url']);
+    }
+  }
+  $output = theme('drupalsib_site_footer_small_menu', array('footer_menu' => $footer_menu_html));
   $block = new stdClass();
   $block->content = $output;
   return $block;
@@ -37,22 +42,13 @@ function drupalsib_site_footer_small_menu_content_type_theme(&$theme, $plugin) {
   );
 }
 
-/**
-* Returns an edit form for the custom type.
-*/
-// The function name is MODULE_NAME_CT_NAME_content_type_edit_form
 function drupalsib_site_footer_small_menu_content_type_edit_form(&$form, &$form_state) {
-// The current configuration
 $conf = $form_state['conf'];
 
-// This and the next one are normal FAPI form making.
 $form['selected_menu'] = array(
 '#type' => 'select',
 '#title' => t('Select menu'),
-'#options' => drupalsib_site_footer_small_menu_menus(),//array(
-    //0 => t('No'),
-    //1 => t('Yes'),
-//),/
+'#options' => drupalsib_site_footer_small_menu_menus(),
 '#description' => t('Chose the menu from the list'),
 '#default_value' => $conf['selected_menu'],
 
@@ -62,7 +58,6 @@ return $form;
 }
 
 function drupalsib_site_footer_small_menu_content_type_edit_form_submit($form, &$form_state) {
-  // Copy everything from our defaults.
   foreach (array_keys($form_state['plugin']['defaults']) as $key) {
     $form_state['conf'][$key] = $form_state['values'][$key];
   }

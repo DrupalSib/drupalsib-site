@@ -43,15 +43,20 @@ function menu_generator_custom_menu_content_type_render($subtype, $conf, $panel_
       $menus[$id]['active'] = $result['link']['in_active_trail'];
     }
   }
-  
+    
   if (!empty($menus)) {
     if (!empty($conf['wrapper_element'])) {
       foreach ($menus as $menu) {
         if (!$menu['active'] || empty($conf['wrapper_element_page'])) {
           $content .= str_replace(array('!title', '!url'), array($menu['title'], url($menu['url'])), $conf['wrapper_element']);
+        
+          
         }
         else {
           $content .= str_replace(array('!title', '!url'), array($menu['title'], url($menu['url'])), $conf['wrapper_element_page']);
+        
+          die ($content.'DSDJL');
+          
         }
       }
     }
