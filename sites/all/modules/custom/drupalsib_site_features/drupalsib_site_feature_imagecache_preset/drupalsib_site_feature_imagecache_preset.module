@@ -1,0 +1,7 @@
+<?php
+/**
+ * @file
+ * Code for the drupalsib_site_feature_imagecache_preset feature.
+ */
+
+include_once 'drupalsib_site_feature_imagecache_preset.features.inc';

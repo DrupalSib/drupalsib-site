@@ -1,0 +1,9 @@
+<?php
+/**
+ * Implements hook_ctools_plugin_directory().
+ */
+function menu_generator_ctools_plugin_directory($module, $plugin) {
+  if ($module == 'panels' || $module == 'ctools') {
+    return 'plugins/' . $plugin;
+  }
+}

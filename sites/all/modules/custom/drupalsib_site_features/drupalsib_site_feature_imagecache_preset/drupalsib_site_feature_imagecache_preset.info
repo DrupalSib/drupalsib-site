@@ -1,0 +1,6 @@
+name = drupalsib_site_feature_imagecache_preset
+core = 7.x
+package = Features
+dependencies[] = image
+features[features_api][] = api:1
+features[image][] = login_img
