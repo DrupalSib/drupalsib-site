@@ -1,5 +1,5 @@
 <div class="ds_login">
-    <?php
-        print $links;
-    ?>
+  <?php  
+    print $links;
+  ?>
 </div>
