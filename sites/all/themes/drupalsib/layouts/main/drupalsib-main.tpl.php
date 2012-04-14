@@ -15,7 +15,6 @@
  */
 ?>
 
-
 <div id="ds_page">
     <div id="ds_page_inner">
         <div id="ds_header">
@@ -24,7 +23,8 @@
         <div id="ds_main">
             <div id="ds_main_inner">
                 <div id="ds_main_left">
-                    <?php print $content['content']; ?>
+                    <?php print $content['content'];?>
+										
                 </div>
                 <div id="ds_main_sidebar">
                     <?php print $content['sidebar']; ?>
@@ -36,3 +36,5 @@
         </div>
     </div>
 </div>
+
+
