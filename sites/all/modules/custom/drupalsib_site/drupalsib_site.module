@@ -1,0 +1,12 @@
+<?php
+    define('DRUPALSIB_SITE_THEME_PATH', drupal_get_path('theme', 'drupalsib'));
+
+    function drupalsib_site_init(){
+    }
+    
+    function drupalsib_site_ctools_plugin_directory($module, $plugin){
+        if ($module == 'ctools' || $module == 'page_manager' || ($module == 'panels' && in_array($plugin, array('layouts')))) 
+        {
+            return 'plugins/' . $plugin;
+        }
+    }

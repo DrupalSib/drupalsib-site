@@ -1,0 +1,5 @@
+name = Drupalsib Site
+description = Модуль для сайта Drupal Sib.
+core = 7.x
+package = "drupalsib_site"
+configure = admin/structure/drupalsib_site
