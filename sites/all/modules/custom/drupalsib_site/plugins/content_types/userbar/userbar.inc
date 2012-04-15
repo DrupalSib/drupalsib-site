@@ -30,8 +30,6 @@ function drupalsib_site_userbar_content_type_render($subtype, $conf, $panel_args
 
   $links = '';
 
-
-
   if (user_is_anonymous()) {
     $login_link = l('&nbsp' . t('Вход'), 'user/login', array('html' => TRUE));
     $links .= '<img src="/' . DRUPALSIB_SITE_THEME_PATH .

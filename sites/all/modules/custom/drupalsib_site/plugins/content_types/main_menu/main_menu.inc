@@ -41,12 +41,18 @@ function drupalsib_site_main_menu_content_type_render($subtype, $conf, $panel_ar
   $main_menu = array_values($main_menu);
   foreach ($main_menu as $key => $result) {
     if ($key == 0) {
-      $home_link = l('<img src=/"' . DRUPALSIB_SITE_THEME_PATH . '/images/pic-menu-hp.png" alt="homepage"/>', $main_menu[$key]['url'], array('html' => TRUE));
+      $home_link = l('<img src="/' . DRUPALSIB_SITE_THEME_PATH . '/images/pic-menu-hp.png" alt="homepage"/>', $main_menu[$key]['url'], array('html' => TRUE));
       $links .= '<li class="homepage">' . $home_link . '</li>';
     } 
     else {
-      $item_link = l(t($main_menu[$key]['title']), $main_menu[$key]['url'], array('html' => TRUE));
-      $links .= '<li>' . $item_link . '</li>';
+      if ($main_menu[$key]['active']) {
+        $item_link = l(t($main_menu[$key]['title']), $main_menu[$key]['url'], array('html' => TRUE));
+        $links .= '<li class="orange">' . $item_link . '</li>';
+      }
+      else {
+        $item_link = l(t($main_menu[$key]['title']), $main_menu[$key]['url'], array('html' => TRUE));
+        $links .= '<li>' . $item_link . '</li>';        
+      }
     }
   }
   
