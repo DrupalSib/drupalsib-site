@@ -47,6 +47,28 @@ function drupalsib_site_feature_panels_default_page_manager_handlers() {
   $display->panels = array();
     $pane = new stdClass();
     $pane->pid = 'new-1';
+    $pane->panel = 'content';
+    $pane->type = 'page_content';
+    $pane->subtype = 'page_content';
+    $pane->shown = TRUE;
+    $pane->access = array();
+    $pane->configuration = array(
+      'context' => 'argument_page_content_1',
+      'override_title' => 0,
+      'override_title_text' => '',
+    );
+    $pane->cache = array();
+    $pane->style = array(
+      'settings' => NULL,
+    );
+    $pane->css = array();
+    $pane->extras = array();
+    $pane->position = 0;
+    $pane->locks = array();
+    $display->content['new-1'] = $pane;
+    $display->panels['content'][0] = 'new-1';
+    $pane = new stdClass();
+    $pane->pid = 'new-2';
     $pane->panel = 'header';
     $pane->type = 'userbar';
     $pane->subtype = 'userbar';
@@ -61,8 +83,8 @@ function drupalsib_site_feature_panels_default_page_manager_handlers() {
     $pane->extras = array();
     $pane->position = 0;
     $pane->locks = array();
-    $display->content['new-1'] = $pane;
-    $display->panels['header'][0] = 'new-1';
+    $display->content['new-2'] = $pane;
+    $display->panels['header'][0] = 'new-2';
   $display->hide_title = PANELS_TITLE_FIXED;
   $display->title_pane = '0';
   $handler->conf['display'] = $display;
