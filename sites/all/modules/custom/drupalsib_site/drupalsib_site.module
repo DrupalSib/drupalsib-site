@@ -5,8 +5,7 @@
     }
     
     function drupalsib_site_ctools_plugin_directory($module, $plugin){
-        if ($module == 'ctools' || $module == 'page_manager' || ($module == 'panels' && in_array($plugin, array('layouts')))) 
-        {
-            return 'plugins/' . $plugin;
-        }
+      if ($module == 'ctools' || $module == 'page_manager' || ($module == 'panels' && in_array($plugin, array('layouts')))) {
+        return 'plugins/' . $plugin;
+      }
     }
