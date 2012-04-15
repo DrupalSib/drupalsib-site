@@ -10,7 +10,9 @@ $plugin = array(
   'regions' => array(
     'header' => t('Header'),
     'content' => t('Content'),
+    'sidebar_top' => t('Sidebar_Top'),
     'sidebar' => t('Sidebar'),
+    'sidebar_bottom' => t('Sidebar_Bottom'),
     'footer' => t('Footer')
   ),
 );

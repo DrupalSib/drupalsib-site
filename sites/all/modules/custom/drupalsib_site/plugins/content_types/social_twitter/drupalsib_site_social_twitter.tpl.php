@@ -4,7 +4,6 @@
  *   
  */
 ?>
-<div class="ds_sidebar_content">
   <div id="ds_tw_block">
     <script charset="utf-8" src="http://widgets.twimg.com/j/2/widget.js"></script>
     <script>
@@ -35,4 +34,3 @@
     }).render().setUser('DrupalSib').start();
     </script>
   </div>
-</div>

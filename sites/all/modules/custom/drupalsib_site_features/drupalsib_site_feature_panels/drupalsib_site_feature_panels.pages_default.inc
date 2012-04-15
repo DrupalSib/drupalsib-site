@@ -39,6 +39,8 @@ function drupalsib_site_feature_panels_default_page_manager_handlers() {
       'content' => NULL,
       'sidebar' => NULL,
       'footer' => NULL,
+      'sidebar_top' => NULL,
+      'sidebar_bottom' => NULL,
     ),
   );
   $display->cache = array();
@@ -121,6 +123,42 @@ function drupalsib_site_feature_panels_default_page_manager_handlers() {
     $pane->locks = array();
     $display->content['new-4'] = $pane;
     $display->panels['header'][2] = 'new-4';
+    $pane = new stdClass();
+    $pane->pid = 'new-5';
+    $pane->panel = 'sidebar';
+    $pane->type = 'social_vkontakte';
+    $pane->subtype = 'social_vkontakte';
+    $pane->shown = TRUE;
+    $pane->access = array();
+    $pane->configuration = array();
+    $pane->cache = array();
+    $pane->style = array(
+      'settings' => NULL,
+    );
+    $pane->css = array();
+    $pane->extras = array();
+    $pane->position = 0;
+    $pane->locks = array();
+    $display->content['new-5'] = $pane;
+    $display->panels['sidebar'][0] = 'new-5';
+    $pane = new stdClass();
+    $pane->pid = 'new-6';
+    $pane->panel = 'sidebar';
+    $pane->type = 'social_twitter';
+    $pane->subtype = 'social_twitter';
+    $pane->shown = TRUE;
+    $pane->access = array();
+    $pane->configuration = array();
+    $pane->cache = array();
+    $pane->style = array(
+      'settings' => NULL,
+    );
+    $pane->css = array();
+    $pane->extras = array();
+    $pane->position = 1;
+    $pane->locks = array();
+    $display->content['new-6'] = $pane;
+    $display->panels['sidebar'][1] = 'new-6';
   $display->hide_title = PANELS_TITLE_FIXED;
   $display->title_pane = '0';
   $handler->conf['display'] = $display;
