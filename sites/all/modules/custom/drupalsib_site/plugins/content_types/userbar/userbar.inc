@@ -48,12 +48,12 @@ function drupalsib_site_userbar_content_type_render($subtype, $conf, $panel_args
           'style_name' => 'login_img'
           ));
     }
-    $img_link = l($avatar, "user/$user->uid", array('html' => TRUE));
+    // ПИШИТ ЭДЕСЬ ОШИБКА $img_link = l($avatar, "user/$user->uid", array('html' => TRUE));
     $nick_link = l($user->name, "user/$user->uid", array('html' => TRUE));
     $mes_link = l(t('Сообщения'), '#', array('html' => TRUE));
     $out_link = l(t('Выйти'), '', array('html' => TRUE));
 
-    $links .= '<ul><li class="first">' . $img_link . '</li>' .
+    // ПИШИТ ЭДЕСЬ ОШИБКА$links .= '<ul><li class="first">' . $img_link . '</li>' .
         '<li>' . $nick_link . '</li>' .
         '<li>' . $mes_link . '</li>' .
         '<li>' . $out_link . '</li></ul>';
