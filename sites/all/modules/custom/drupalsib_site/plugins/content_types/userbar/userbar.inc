@@ -34,7 +34,7 @@ function drupalsib_site_userbar_content_type_render($subtype, $conf, $panel_args
     $img_link = l($avatar, "user/$user->uid", array('html' => TRUE));
     $nick_link = l($user->name, "user/$user->uid", array('html' => TRUE));
     $mes_link = l(t('Сообщения'), '#', array('html' => TRUE));
-    $out_link = l(t('Выйти'), '', array('html' => TRUE));
+    $out_link = l(t('Выйти'), 'user/logout', array('html' => TRUE));
 
     $links .= '<ul><li class="first">' . $img_link . '</li>' .
         '<li>' . $nick_link . '</li>' .

@@ -25,41 +25,36 @@ $plugin = array(
  * Outputs a node based on the module and delta supplied in the configuration.
  */
 function drupalsib_site_main_menu_content_type_render($subtype, $conf, $panel_args) {
-  $main_menu_tree = menu_tree_page_data('main-menu');
-
-  $main_menu = array();
-  
-  $links = '<ul class="menu">';
-  
-  foreach ($main_menu_tree as $id => $result) {
-    if (!$result['link']['hidden']) {
-      $main_menu[$id]['title'] = $result['link']['link_title'];
-      $main_menu[$id]['url'] = $result['link']['link_path'];
-      $main_menu[$id]['active'] = $result['link']['in_active_trail'];
+  $links = '';
+  foreach (menu_tree('main-menu') as $key => $info) {
+    if (!is_numeric($key)) {
+      continue;
     }
-  }
-  $main_menu = array_values($main_menu);
-  foreach ($main_menu as $key => $result) {
-    if ($key == 0) {
-      $home_link = l('<img src="/' . DRUPALSIB_SITE_THEME_PATH . '/images/pic-menu-hp.png" alt="homepage"/>', $main_menu[$key]['url'], array('html' => TRUE));
-      $links .= '<li class="homepage">' . $home_link . '</li>';
-    } 
-    else {
-      if ($main_menu[$key]['active']) {
-        $item_link = l(t($main_menu[$key]['title']), $main_menu[$key]['url'], array('html' => TRUE));
-        $links .= '<li class="orange">' . $item_link . '</li>';
+    $item_link = NULL;
+    if (!$info['original_link']['hidden']) {
+      $class = NULL;
+      if ($info['#href'] == '<front>') {
+        $class = 'homepage';
+        $image = '<img src="/' . DRUPALSIB_SITE_THEME_PATH . '/images/pic-menu-hp.png" alt="homepage"/>';
+        $item_link = l($image, $info['#href'], array('html' => TRUE));
       }
       else {
-        $item_link = l(t($main_menu[$key]['title']), $main_menu[$key]['url'], array('html' => TRUE));
-        $links .= '<li>' . $item_link . '</li>';        
+        if (($node = menu_get_object('node', 1, $info['#href']))
+            && (!empty($node->field_section_highlight['und'][0]['value']))) {
+          $class = 'orange';
+        }
+        $item_link = l($info['#title'], $info['#href']);
       }
+      $links .= '<li ' . ($class ? "class=\"$class\"" : '') . '>' . $item_link . '</li>';
     }
   }
   
-  $links .= '</ul>';
-
+  if ($links) {
+    $links = '<ul class="menu">' . $links . '</ul>';
+  } 
+ 
+  $block = new stdClass();  
   $block->content = theme('drupalsib_site_main_menu', array('links' => $links));
-
   return $block;
 }
 
