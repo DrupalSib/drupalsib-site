@@ -31,22 +31,20 @@ function drupalsib_site_main_menu_content_type_render($subtype, $conf, $panel_ar
       continue;
     }
     $item_link = NULL;
-    if (!$info['original_link']['hidden']) {
-      $class = NULL;
-      if ($info['#href'] == '<front>') {
-        $class = 'homepage';
-        $image = '<img src="/' . DRUPALSIB_SITE_THEME_PATH . '/images/pic-menu-hp.png" alt="homepage"/>';
-        $item_link = l($image, $info['#href'], array('html' => TRUE));
-      }
-      else {
-        if (($node = menu_get_object('node', 1, $info['#href']))
-            && (!empty($node->field_section_highlight['und'][0]['value']))) {
-          $class = 'orange';
-        }
-        $item_link = l($info['#title'], $info['#href']);
-      }
-      $links .= '<li ' . ($class ? "class=\"$class\"" : '') . '>' . $item_link . '</li>';
+    $class = NULL;
+    if ($info['#href'] == '<front>') {
+      $class = 'homepage';
+      $image = '<img src="/' . DRUPALSIB_SITE_THEME_PATH . '/images/pic-menu-hp.png" alt="homepage"/>';
+      $item_link = l($image, $info['#href'], array('html' => TRUE));
     }
+    else {
+      if (($node = menu_get_object('node', 1, $info['#href']))
+          && (!empty($node->field_section_highlight['und'][0]['value']))) {
+        $class = 'orange';
+      }
+      $item_link = l($info['#title'], $info['#href']);
+    }
+    $links .= '<li ' . ($class ? "class=\"$class\"" : '') . '>' . $item_link . '</li>';
   }
   
   if ($links) {
