@@ -170,16 +170,12 @@ Do not use both types of declarations for a single project in your makefile.
 
   `md5`, `sha1`, `sha256`, or `sha512` - one or more checksums for the file. Optional.
 
-  `request_type` - the request type - get or post. post depends on
-  http://drupal.org/project/make_post. Optional.
+  `request_type` - the request type - get or post. Defaults to get. Optional.
 
   `data` - The post data to be submitted with the request. Should be a
-  valid URL query string. Requires http://drupal.org/project/make_post. Optional.
+  valid URL query string. Required.
 
   `filename` - What to name the file, if it's not an archive. Optional.
-
-  `subtree`  - if the download is an archive, only this subtree within the
-  archive will be copied to the target destination. Optional.
 
 - `download[type] = bzr`
 

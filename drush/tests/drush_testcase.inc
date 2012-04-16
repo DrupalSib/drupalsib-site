@@ -26,15 +26,6 @@ abstract class Drush_TestCase extends PHPUnit_Framework_TestCase {
     mkdir(getenv('HOME') . '/.drush', 0777, TRUE);
     mkdir($sandbox . '/etc/drush', 0777, TRUE);
     mkdir($sandbox . '/share/drush/commands', 0777, TRUE);
-
-    if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
-      // Hack to make git use unix line endings on windows
-      // We need it to make hashes of files pulled from git match ones hardcoded in tests
-      if (!file_exists($sandbox . '\home')) {
-        mkdir($sandbox . '\home');
-      }
-      exec("git config --file $sandbox\\home\\.gitconfig core.autocrlf false", $output, $return);
-    }
   }
 
   /**
@@ -101,7 +92,7 @@ abstract class Drush_TestCase extends PHPUnit_Framework_TestCase {
 
     return $path;
   }
-
+  
   /*
    *Borrowed from Drush.
    * Checks operating system and returns
@@ -330,12 +321,10 @@ abstract class Drush_CommandTestCase extends Drush_TestCase {
     *   A directory to change into before executing.
     * @param $expected_return
     *   The expected exit code. Usually self::EXIT_ERROR or self::EXIT_SUCCESS.
-    * @param $suffix
-    *   Any code to append to the command. For example, redirection like 2>&1.
     * @return integer
     *   An exit code.
     */
-  function drush($command, array $args = array(), array $options = array(), $site_specification = NULL, $cd = NULL, $expected_return = self::EXIT_SUCCESS, $suffix = NULL) {
+  function drush($command, array $args = array(), array $options = array(), $site_specification = NULL, $cd = NULL, $expected_return = self::EXIT_SUCCESS) {
     $global_option_list = array('simulate', 'root', 'uri', 'include', 'config', 'alias-path', 'ssh-options');
     // insert "cd ... ; drush"
     $cmd[] = $cd ? sprintf('cd %s &&', self::escapeshellarg($cd)) : NULL;
@@ -376,7 +365,6 @@ abstract class Drush_CommandTestCase extends Drush_TestCase {
         $cmd[] = "--$key=" . self::escapeshellarg($value);
       }
     }
-    $cmd[] = $suffix;
     $exec = array_filter($cmd, 'strlen'); // Remove NULLs
     return $this->execute(implode(' ', $exec), $expected_return);
   }
@@ -469,26 +457,23 @@ function unish_init() {
   define('UNISH_TMP', getenv('UNISH_TMP') ? getenv('UNISH_TMP') : (isset($GLOBALS['UNISH_TMP']) ? $GLOBALS['UNISH_TMP'] : sys_get_temp_dir()));
   define('UNISH_SANDBOX', UNISH_TMP . DIRECTORY_SEPARATOR . 'drush-sandbox');
 
-  // Cache dir lives outside the sandbox so that we get persistence across classes.
-  define('UNISH_CACHE', UNISH_TMP . DIRECTORY_SEPARATOR . 'drush-cache');
-  putenv("CACHE_PREFIX=" . UNISH_CACHE);
-  // Wipe at beginning of run.
-  if (file_exists(UNISH_CACHE)) {
-    // TODO: We no longer clean up cache dir between runs. Much faster, but we
-    // we should watch for subtle problems. To manually clean up, delete the
-    // UNISH_TMP/drush-cache directory.
-    // unish_file_delete_recursive($cache);
-  }
-  else {
-    $ret = mkdir(UNISH_CACHE, 0777, TRUE);
-  }
-
   $home = UNISH_SANDBOX . '/home';
   putenv("HOME=$home");
   putenv("HOMEDRIVE=$home");
 
   putenv('ETC_PREFIX=' . UNISH_SANDBOX);
   putenv('SHARE_PREFIX=' . UNISH_SANDBOX);
+
+  // Cache dir lives outside the sandbox so that we get persistence across classes.
+  $cache = UNISH_TMP . '/drush-cache';
+  putenv("CACHE_PREFIX=" . $cache);
+  // Wipe at beginning of run.
+  if (file_exists($cache)) {
+    // TODO: We no longer clean up cache dir between runs. Much faster, but we
+    // we should watch for subtle problems. To manually clean up, delete the
+    // UNISH_TMP/drush-cache directory.
+    // unish_file_delete_recursive($cache);
+  }
 
   define('UNISH_BACKEND_OUTPUT_DELIMITER', 'DRUSH_BACKEND_OUTPUT_START>>>%s<<<DRUSH_BACKEND_OUTPUT_END');
 }

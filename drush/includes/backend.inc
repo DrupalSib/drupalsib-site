@@ -263,14 +263,7 @@ function drush_backend_parse_output($string, $backend_options = array(), $output
  *    Whether output has already been handled.
  */
 function _drush_backend_integrate($data, $backend_options, $outputted) {
-  // In 'integrate' mode, logs and errors have already been handled
-  // by drush_backend_packet (sender) drush_backend_parse_packets (reciever - us)
-  // during incremental output.  We therefore do not need to call drush_set_error
-  // or drush_log here.  The exception is if the sender is an older version of
-  // Drush (version 4.x) that does not send backend packets, then we will
-  // not have processed the log entries yet, and must print them here.
-  $received_packets = drush_get_context('DRUSH_RECEIVED_BACKEND_PACKETS', FALSE);
-  if (is_array($data['log']) && $backend_options['log'] && (!$received_packets)) {
+  if (is_array($data['log']) && $backend_options['log']) {
     foreach($data['log'] as $log) {
       $message = is_array($log['message']) ? implode("\n", $log['message']) : $log['message'];
       if (isset($backend_options['#output-label'])) {
@@ -296,11 +289,6 @@ function _drush_backend_integrate($data, $backend_options, $outputted) {
   }
 }
 
-/**
- * Supress log message output during backend integrate.
- */
-function _drush_backend_integrate_log($entry) {
-}
 
 /**
  * Call an external command using proc_open.
@@ -456,7 +444,6 @@ function _drush_backend_print_output($output_string, $backend_options) {
 function drush_backend_parse_packets(&$string, $backend_options) {
   $packet_regex = strtr(sprintf(DRUSH_BACKEND_PACKET_PATTERN, "([^\0]*)"), array("\0" => "\\0"));
   if (preg_match_all("/$packet_regex/s", $string, $match, PREG_PATTERN_ORDER)) {
-    drush_set_context('DRUSH_RECEIVED_BACKEND_PACKETS', TRUE);
     foreach ($match[1] as $packet_data) {
       $entry = (array) json_decode($packet_data);
       if (is_array($entry) && isset($entry['packet'])) {
@@ -637,7 +624,7 @@ function drush_backend_invoke_concurrent($invocations, $common_options = array()
       '%drush-script' => NULL,
     );
 
-    $site = (array_key_exists('#name', $site_record) && !array_key_exists($site_record['#name'], $invocation_options)) ? $site_record['#name'] : $index++;
+    $site = array_key_exists('#name', $site_record) ? $site_record['#name'] : $index++;
     $invocation_options[$site] = array(
       'site-record' => $site_record,
       'command' => $command,
@@ -784,12 +771,6 @@ function _drush_backend_classify_options($site_record, $command_options, &$backe
     $drush_local_options = $backend_options['drush-local-options'];
     $command_options += $drush_local_options;
   }
-  if (!empty($backend_options['backend']) && empty($backend_options['interactive'])) {
-    $drush_global_options['backend'] = '2';
-  }
-  if (!empty($backend_options['interactive'])) {
-    $drush_global_options['invoke'] = TRUE;
-  }
   foreach ($command_options as $key => $value) {
     $global = array_key_exists($key, $global_option_list);
     $propagate = TRUE;
@@ -846,11 +827,7 @@ function _drush_backend_classify_options($site_record, $command_options, &$backe
  *
  * @return
  *   If the command could not be completed successfully, FALSE.
- *   If one command was executed, this will return an associative array containing 
- *   the data from drush_backend_output().
- *   If multiple commands were executed, this will return an associative array
- *   containing one item, 'concurrent', which will contain a list of the different
- *   backend invoke results from each concurrent command.
+ *   If the command was completed, this will return an associative array containing the data from drush_backend_output().
  */
 function _drush_backend_invoke($cmds, $common_backend_options = array(), $context = NULL) {
   if (drush_get_context('DRUSH_SIMULATE') && !array_key_exists('override-simulated', $common_backend_options)) {
@@ -862,14 +839,10 @@ function _drush_backend_invoke($cmds, $common_backend_options = array(), $contex
   foreach ($cmds as $cmd) {
     drush_log(dt('Backend invoke: !cmd', array('!cmd' => $cmd['cmd'])), 'command');
   }
-  if (array_key_exists('interactive', $common_backend_options) || array_key_exists('fork', $common_backend_options)) {
+  if (array_key_exists('interactive', $common_backend_options)) {
     foreach ($cmds as $cmd) {
-      $exec_cmd = $cmd['cmd'];
-      if (array_key_exists('fork', $common_backend_options)) {
-        $exec_cmd .= ' --quiet &';
-      }
-      drush_log(dt("executing !cmd", array('!cmd' => $exec_cmd)));
-      $ret = drush_shell_proc_open($exec_cmd);
+      drush_log(dt("executing !cmd", array('!cmd' => $cmd['cmd'])));
+      $ret = drush_shell_proc_open($cmd['cmd']);
     }
     return $ret;
   }
@@ -878,8 +851,8 @@ function _drush_backend_invoke($cmds, $common_backend_options = array(), $contex
     $procs = _drush_backend_proc_open($cmds, $process_limit, $context);
     $procs = is_array($procs) ? $procs : array($procs);
 
-    $ret = array();
     foreach ($procs as $site => $proc) {
+      $ret = array();
       if (($proc['code'] == DRUSH_APPLICATION_ERROR) && isset($common_backend_options['integrate'])) {
         drush_set_error('DRUSH_APPLICATION_ERROR', dt("The external command could not be executed due to an application error."));
       }
@@ -891,11 +864,11 @@ function _drush_backend_invoke($cmds, $common_backend_options = array(), $contex
           if (empty($ret)) {
             $ret = $values;
           }
-          elseif (!array_key_exists('concurrent', $ret)) {
-            $ret = array('concurrent' => array($ret, $values));
+          elseif (!array_key_exists('multiple', $ret)) {
+            $ret = array('multiple' => array($ret['site'] => $ret, $values['site'] => $values));
           }
           else {
-            $ret['concurrent'][] = $values;
+            $ret['multiple'][$values['site']] = $values;
           }
         }
         else {
@@ -1000,6 +973,12 @@ function _drush_backend_generate_command($site_record, $command, $args = array()
   $option_str = _drush_backend_argument_string($command_options, $os);
   if (!empty($option_str)) {
     $cmd[] = " " . $option_str;
+  }
+  if (!empty($backend_options['backend']) && empty($backend_options['interactive'])) {
+    $cmd[] = "--backend=2";
+  }
+  if (!empty($backend_options['interactive'])) {
+    $cmd[] .= '--invoke';
   }
   $command = implode(' ', array_filter($cmd, 'strlen'));
   if (!is_null($hostname)) {

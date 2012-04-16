@@ -7,18 +7,6 @@
  */
 class makeMakefileCase extends Drush_CommandTestCase {
   /**
-   * Path to test make files.
-   */
-  protected $makefile_path;
-
-  /**
-   * Initialize $makefile_path.
-   */
-  function __construct() {
-    $this->makefile_path =  dirname(__FILE__) . DIRECTORY_SEPARATOR . 'makefiles';
-  }
-
-  /**
    * Run a given makefile test.
    *
    * @param $test
@@ -29,9 +17,10 @@ class makeMakefileCase extends Drush_CommandTestCase {
       'test' => NULL,
       'md5' => 'print',
     );
+    $makefile_path = dirname(__FILE__) . '/makefiles';
     $config = $this->getMakefile($test);
     $options = array_merge($config['options'], $default_options);
-    $makefile = $this->makefile_path . DIRECTORY_SEPARATOR . $config['makefile'];
+    $makefile = $makefile_path . '/' . $config['makefile'];
     $return = !empty($config['fail']) ? self::EXIT_ERROR : self::EXIT_SUCCESS;
     $this->drush('make', array($makefile), $options, NULL, NULL, $return);
 
@@ -99,7 +88,8 @@ class makeMakefileCase extends Drush_CommandTestCase {
   function testMakeTranslations() {
     $config = $this->getMakefile('translations');
 
-    $makefile = $this->makefile_path . DIRECTORY_SEPARATOR . $config['makefile'];
+    $makefile_path = dirname(__FILE__) . '/makefiles';
+    $makefile = $makefile_path . '/' . $config['makefile'];
     $install_directory = UNISH_SANDBOX . '/translations';
     $this->drush('make', array($makefile, $install_directory), $config['options']);
 
@@ -120,7 +110,8 @@ class makeMakefileCase extends Drush_CommandTestCase {
   function testMakeTranslationsInside() {
     $config = $this->getMakefile('translations-inside');
 
-    $makefile = $this->makefile_path . '/' . $config['makefile'];
+    $makefile_path = dirname(__FILE__) . '/makefiles';
+    $makefile = $makefile_path . '/' . $config['makefile'];
     $install_directory = UNISH_SANDBOX . '/translations-inside';
     $this->drush('make', array($makefile, $install_directory));
 
@@ -145,7 +136,8 @@ class makeMakefileCase extends Drush_CommandTestCase {
   function testMakeTranslationsInside7() {
     $config = $this->getMakefile('translations-inside7');
 
-    $makefile = $this->makefile_path . DIRECTORY_SEPARATOR . $config['makefile'];
+    $makefile_path = dirname(__FILE__) . '/makefiles';
+    $makefile = $makefile_path . '/' . $config['makefile'];
     $install_directory = UNISH_SANDBOX . '/translations-inside7';
     $this->drush('make', array($makefile, $install_directory));
 
@@ -175,10 +167,6 @@ class makeMakefileCase extends Drush_CommandTestCase {
     $this->runMakefileTest('file');
   }
 
-  function testMakeSubtree() {
-    $this->runMakefileTest('subtree');
-  }
-
   function testMakeMd5Succeed() {
     $this->runMakefileTest('md5-succeed');
   }
@@ -199,8 +187,9 @@ class makeMakefileCase extends Drush_CommandTestCase {
     // Use the git-simple.make file.
     $config = $this->getMakefile('git-simple');
 
+    $makefile_path = dirname(__FILE__) . '/makefiles';
     $options = array('no-core' => NULL);
-    $makefile = $this->makefile_path . DIRECTORY_SEPARATOR . $config['makefile'];
+    $makefile = $makefile_path . '/' . $config['makefile'];
     $this->drush('make', array($makefile, UNISH_SANDBOX . '/test-build'), $options);
 
     // Test cck_signup.info file.
@@ -211,7 +200,7 @@ class makeMakefileCase extends Drush_CommandTestCase {
     $this->assertContains('project = "cck_signup"', $contents);
 
     // Verify that a reference cache was created.
-    $cache_dir = UNISH_CACHE . DIRECTORY_SEPARATOR . 'cache';
+    $cache_dir = UNISH_SANDBOX . '/home/.drush/cache';
     $this->assertFileExists($cache_dir . '/git/cck_signup-' . md5('http://git.drupal.org/project/cck_signup.git'));
 
     // Test context_admin.info file.
@@ -227,32 +216,6 @@ class makeMakefileCase extends Drush_CommandTestCase {
 
   function testMakeFileExtract() {
     $this->runMakefileTest('file-extract');
-  }
-
-  function testMakeLimitProjects() {
-    $this->runMakefileTest('limit-projects');
-    $this->runMakefileTest('limit-projects-multiple');
-  }
-
-  function testMakeLimitLibraries() {
-    $this->runMakefileTest('limit-libraries');
-    $this->runMakefileTest('limit-libraries-multiple');
-  }
-
-  /**
-   * Test that make_move_build() doesn't wipe out directories that it shouldn't.
-   */
-  function testMakeMoveBuild() {
-    // Manually download a module.
-    $this->drush('pm-download', array('cck_signup'), array('destination' => UNISH_SANDBOX . '/modules', 'yes' => NULL));
-
-    // Build a make file.
-    $config = $this->getMakefile('contrib-destination');
-    $makefile = $this->makefile_path . DIRECTORY_SEPARATOR . $config['makefile'];
-    $this->drush('make', array($makefile, '.'), $config['options']);
-
-    // Verify that the manually downloaded module still exists.
-    $this->assertFileExists(UNISH_SANDBOX . '/modules/cck_signup/README.txt');
   }
 
   function getMakefile($key) {
@@ -304,10 +267,7 @@ class makeMakefileCase extends Drush_CommandTestCase {
         'makefile' => 'recursion.make',
         'build'    => TRUE,
         'md5' => 'cd095bd6dadb2f0d3e81f85f13685372',
-        'options'  => array(
-          'no-core' => NULL,
-          'contrib-destination' => 'profiles/drupal_forum',
-        ),
+        'options'  => array('no-core' => NULL),
       ),
       'svn' => array(
         'name'     => 'SVN',
@@ -353,13 +313,6 @@ class makeMakefileCase extends Drush_CommandTestCase {
         'md5' => 'c7cab3930f644961a576d78769498172',
         'options'  => array('no-core' => NULL),
       ),
-      'subtree' => array(
-        'name'     => 'Use subtree from downloaded archive',
-        'makefile' => 'subtree.make',
-        'build'    => TRUE,
-        'md5' => 'db3770d8b4c9ce77510cbbcc566da9b8',
-        'options'  => array('no-core' => NULL),
-      ),
       'md5-succeed' => array(
         'name'     => 'MD5 validation',
         'makefile' => 'md5-succeed.make',
@@ -386,37 +339,9 @@ class makeMakefileCase extends Drush_CommandTestCase {
         'name'     => 'Extract archives',
         'makefile' => 'file-extract.make',
         'build'    => TRUE,
-        'md5' => 'f92471fb7979e45d2554c61314ac6236',
+        'md5' => 'a7d0c50e7fb166ab717507e3797f5cbf',
         // @todo This test often fails with concurrency set to more than one.
         'options'  => array('no-core' => NULL, 'concurrency' => 1),
-      ),
-      'limit-projects' => array(
-        'name'     => 'Limit projects downloaded',
-        'makefile' => 'limited-projects-libraries.make',
-        'build'    => TRUE,
-        'md5' => '3149650120e541d7d0fa577eef0ee9a3',
-        'options'  => array('no-core' => NULL, 'projects' => 'boxes'),
-      ),
-      'limit-projects-multiple' => array(
-        'name'     => 'Limit multiple projects downloaded',
-        'makefile' => 'limited-projects-libraries.make',
-        'build'    => TRUE,
-        'md5' => 'ef8996c4d6c6f0d229e2237c73860071',
-        'options'  => array('no-core' => NULL, 'projects' => 'boxes,admin_menu'),
-      ),
-      'limit-libraries' => array(
-        'name'     => 'Limit libraries downloaded',
-        'makefile' => 'limited-projects-libraries.make',
-        'build'    => TRUE,
-        'md5' => 'cb0da4465d86eb34cafb167787862eb6',
-        'options'  => array('no-core' => NULL, 'libraries' => 'drush_make'),
-      ),
-      'limit-libraries-multiple' => array(
-        'name'     => 'Limit multiple libraries downloaded',
-        'makefile' => 'limited-projects-libraries.make',
-        'build'    => TRUE,
-        'md5' => '7c10e6fc65728a77a2b0aed4ec2a29cd',
-        'options'  => array('no-core' => NULL, 'libraries' => 'drush_make,token'),
       ),
     );
     return $tests[$key];

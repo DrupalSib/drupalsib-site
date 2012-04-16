@@ -26,8 +26,9 @@
  */
 function drush_op_system($exec) {
   if (drush_get_context('DRUSH_VERBOSE') || drush_get_context('DRUSH_SIMULATE')) {
-    drush_print("Calling system($exec);", 0, STDERR);
+     drush_print("Calling system($exec);");
   }
+
   if (drush_get_context('DRUSH_SIMULATE')) {
     return 0;
   }
@@ -107,15 +108,16 @@ function drush_shell_exec_interactive($cmd) {
  * @see drush_shell_exec.
  */
 function _drush_shell_exec($args, $interactive = FALSE) {
-  // Do not change the command itself, just the parameters.
+  //do not change the command itself, just the parameters.
   for ($x = 1; $x < sizeof($args); $x++) {
     $args[$x] = drush_escapeshellarg($args[$x]);
   }
   $command = call_user_func_array('sprintf', $args);
 
   if (drush_get_context('DRUSH_VERBOSE') || drush_get_context('DRUSH_SIMULATE')) {
-    drush_print('Executing: ' . $command, 0, STDERR);
+    drush_print('Executing: ' . $command);
   }
+
   if (!drush_get_context('DRUSH_SIMULATE')) {
     if ($interactive) {
       $result = drush_shell_proc_open($command);
@@ -201,7 +203,7 @@ function drush_shell_proc_build($site, $command = '', $cd = NULL) {
  */
 function drush_shell_proc_open($cmd) {
   if (drush_get_context('DRUSH_VERBOSE') || drush_get_context('DRUSH_SIMULATE')) {
-    drush_print("Calling proc_open($cmd);", 0, STDERR);
+    drush_print("Calling proc_open($cmd);");
   }
   if (!drush_get_context('DRUSH_SIMULATE')) {
     $process = proc_open($cmd, array(0 => STDIN, 1 => STDOUT, 2 => STDERR), $pipes);
@@ -392,7 +394,7 @@ function drush_shell_exec_output() {
  *   TRUE if browser was opened, FALSE if browser was disabled by the user or a,
  *   default browser could not be found.
  */
-function drush_start_browser($uri = NULL, $sleep = FALSE) {
+function drush_start_browser($uri = NULL) {
   if (!parse_url($uri, PHP_URL_HOST)) {
     $site = drush_get_context('DRUSH_URI');
     $host = parse_url($site, PHP_URL_HOST);
@@ -423,14 +425,10 @@ function drush_start_browser($uri = NULL, $sleep = FALSE) {
         $browser = FALSE;
       }
     }
-    $prefix = '';
-    if ($sleep) {
-      $prefix = 'sleep ' . $sleep . ' && ';
-    }
     if ($browser && !drush_get_context('DRUSH_SIMULATE')) {
       $pipes = array();
       drush_log(dt('Opening browser at !uri', array('!uri' => $uri)));
-      proc_close(proc_open($prefix . $browser . ' ' . drush_escapeshellarg($uri) . ' 2> ' . drush_bit_bucket() . ' &', array(), $pipes));
+      proc_close(proc_open($browser . ' ' . drush_escapeshellarg($uri) . ' 2> ' . drush_bit_bucket() . ' &', array(), $pipes));
       return TRUE;
     }
   }

@@ -224,8 +224,7 @@ function drush_sql_sync($source = NULL, $destination = NULL) {
     }
     // If the 'cache' option is set, then we will set the no-dump option iff the
     // target file exists and its modification date is less than "cache" hours.
-    // If --no-sync or --no-dump are already set, then this check is unnecessary.
-    if (isset($cache) && !isset($no_sync) && !isset($no_dump)) {
+    if (isset($cache)) {
       if (file_exists($local_file) && (filesize($local_file) > 0)) {
         if ((time() - filemtime($local_file)) < ($cache * 60 * 60)) {
           drush_log(dt('Modification time of local dump file !file is less than !cache hours old. Use the --no-cache option to force a refresh.', array('!file' => $local_file, '!cache' => $cache)), 'warning');
@@ -351,7 +350,7 @@ function drush_sql_sync($source = NULL, $destination = NULL) {
     if (!isset($no_sync)) {
       // If the source file is a temporary file, then we will have rsync
       // delete it for us (remove-source-files option set above).
-      if (!drush_core_call_rsync($source_remote_user . $source_at . $source_db_url['remote-host'] . ':' . $source_dump, drush_correct_absolute_path_for_exec($local_file, "RSYNC"), $source_rsync_options)) {
+      if (!drush_core_call_rsync($source_remote_user . $source_at . $source_db_url['remote-host'] . ':' . $source_dump, $local_file, $source_rsync_options)) {
         return FALSE;
       }
     }
@@ -410,7 +409,7 @@ function drush_sql_sync($source = NULL, $destination = NULL) {
           $target_remote_pass = array_key_exists('remote-pass', $destination_settings) ? ':' . $destination_settings['remote-pass'] : '';
         }
 
-        if (!drush_core_call_rsync(drush_correct_absolute_path_for_exec($local_file, "RSYNC"), $target_remote_user . $target_at . $target_db_url['remote-host'] . ':' . $target_dump, $target_rsync_options)) {
+        if (!drush_core_call_rsync($local_file, $target_remote_user . $target_at . $target_db_url['remote-host'] . ':' . $target_dump, $target_rsync_options)) {
           return FALSE;
         }
 

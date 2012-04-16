@@ -92,7 +92,7 @@ function sql_drush_command() {
       'drush sql-query "SELECT * FROM users WHERE uid=1"' => 'Browse user record. Table prefixes, if used, must be added to table names by hand.',
       'drush sql-query --db-prefix "SELECT * FROM {users} WHERE uid=1"' => 'Browse user record. Table prefixes are honored.  Caution: curly-braces will be stripped from all portions of the query.',
       '`drush sql-connect` < example.sql' => 'Import sql statements from a file into the current database.',
-      'drush sql-query --file=example.sql' => 'Alternate way to import sql statements from a file.',
+      'drush sql-query --input-file=example.sql' => 'Alternate way to import sql statements from a file.',
     ),
     'arguments' => array(
        'query' => 'An SQL query. Ignored if \'file\' is provided.',
@@ -102,7 +102,7 @@ function sql_drush_command() {
         'description' => 'Save to a file. The file should be relative to Drupal root. Optional.',
         'example-value' => '/path/to/file',
       ),
-      'file' => 'Path to a file containing the SQL to be run.',
+      'input-file' => 'Path to a file containing the SQL to be run.',
       'extra' => 'Add custom options to the mysql command.',
       'db-prefix' => 'Enable replacement of braces in your query.',
     ) + $options + $db_url,
@@ -154,7 +154,7 @@ function sql_drush_command() {
         'confirm-sanitizations' => 'Prompt yes/no after importing the database, but before running the sanitizations',
       ),
     ),
-    'topics' => array('docs-aliases', 'docs-policy', 'docs-example-sync-via-http', 'docs-example-sync-extension'),
+    'topics' => array('docs-aliases', 'docs-policy', 'docs-example-sync-extension'),
   );
   if (drush_drupal_major_version() >= 7) {
 
@@ -268,7 +268,6 @@ function drush_sql_dump_execute() {
   drush_sql_bootstrap_further();
   list($exec, $file) = drush_sql_dump();
   // Avoid the php memory of the $output array in drush_shell_exec().
-
   if (!$return = drush_op_system($exec)) {
     if ($file) {
       drush_log(dt('Database dump saved to !path', array('!path' => $file)), 'success');
@@ -341,7 +340,7 @@ function drush_sql_build_dump_command($table_selection, $db_spec = NULL, $file =
   if ($file) {
     if ($file === TRUE) {
       // User did not pass a specific value for --result-file. Make one.
-      $backup = drush_include_engine('version_control', 'backup');
+      $backup = drush_include_engine('version-control', 'backup');
       $backup_dir = $backup->prepare_backup_dir($db_spec['database']);
       if (empty($backup_dir)) {
         $backup_dir = "/tmp";
@@ -441,20 +440,15 @@ function drush_sql_build_dump_command($table_selection, $db_spec = NULL, $file =
       }
       break;
     case 'sqlsrv':
-      // Change variable '$file' by reference in order to get drush_log() to report.
-      if (!$file) {
-        $file = $db_spec['database'] . '_' . date('Ymd_His') . '.bak';
-      }
-      $exec =  "sqlcmd -U \"" . $db_spec['username'] . "\" -P \"" . $db_spec['password'] . "\" -S \"" . $db_spec['host'] . "\" -Q \"BACKUP DATABASE [" . $db_spec['database'] . "] TO DISK='" . $file . "'\"";
+      $exec = "echo 'sqlsrv sql-dump not yet supported'";
       break;
     case 'oracle':
       $create_db = drush_get_option('create-db');
       $exec = 'exp ' . _drush_sql_get_credentials($db_spec);
-      // Change variable '$file' by reference in order to get drush_log() to report.
-      if (!$file) {
-        $file = $db_spec['username'] . '.dmp';
-      }
-      $exec .= ' file=' . $file;
+      if ($file)
+        $exec .= ' file=' . $file;
+      else
+        $exec .= ' file=' . $db_spec['username'] . '.dmp';
 
       if (!empty($tables))
         $exec .= ' tables="(' . implode(',', $tables) . ')"';

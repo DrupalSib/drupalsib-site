@@ -25,7 +25,7 @@ class backendCase extends Drush_CommandTestCase {
   function testOrigin() {
     $exec = sprintf('%s %s version arg1 arg2 --simulate --ssh-options=%s | grep ssh', UNISH_DRUSH, self::escapeshellarg('user@server/path/to/drupal#sitename'), self::escapeshellarg('-i mysite_dsa'));
     $this->execute($exec);
-    $bash = $this->escapeshellarg('drush  --invoke --simulate --uri=sitename --root=/path/to/drupal version arg1 arg2 2>&1');
+    $bash = $this->escapeshellarg('drush  --simulate --uri=sitename --root=/path/to/drupal version arg1 arg2 --invoke 2>&1');
     $expected = "Simulating backend invoke: ssh -i mysite_dsa user@server $bash 2>&1";
     $output = $this->getOutput();
     $this->assertEquals($expected, $output, 'Expected ssh command was built');
@@ -103,35 +103,7 @@ class backendCase extends Drush_CommandTestCase {
     // assert that $parsed has 'foo' and not 'bar'
     $this->assertEquals("'foo'", var_export($parsed['object'], TRUE));
   }
-  
-  /**
-   * Covers the following target responsibilities.
-   *   - Insures that the backend option 'invoke-multiple' will cause multiple commands to be executed.
-   *   - Insures that the right number of commands run.
-   *   - Insures that the 'concurrent'-format result array is returned.
-   *   - Insures that correct results are returned from each command.
-   */
-  function testBackendInvokeMultiple() {
-    $options = array(
-      'backend' => NULL,
-      'include' => dirname(__FILE__), // Find unit.drush.inc commandfile.
-    );
-    $php = "\$values = drush_invoke_process('@none', 'unit-return-options', array('value'), array('x' => 'y'), array('invoke-multiple' => '3')); return \$values;";
-    $this->drush('php-eval', array($php), $options);
-    $parsed = parse_backend_output($this->getOutput());
-    // assert that $parsed has a 'concurrent'-format output result
-    $this->assertEquals('concurrent', implode(',', array_keys($parsed['object'])));
-    // assert that the concurrent output has indexes 0, 1 and 2 (in any order)
-    $concurrent_indexes = array_keys($parsed['object']['concurrent']);
-    sort($concurrent_indexes);
-    $this->assertEquals('0,1,2', implode(',', $concurrent_indexes));
-    foreach ($parsed['object']['concurrent'] as $index => $values) {
-      // assert that each result contains 'x' => 'y' and nothing else
-      $this->assertEquals("array (
-  'x' => 'y',
-)", var_export($values['object'], TRUE));
-    }
-  }
+
   /**
    * Covers the following target responsibilities.
    *   - Insures that arrays are stripped when using --backend mode's method GET
@@ -175,39 +147,5 @@ class backendCase extends Drush_CommandTestCase {
     'b' => 2,
   ),
 )", var_export($parsed['object'], TRUE));
-  }
-}
-
-class backendUnitCase extends Drush_UnitTestCase {
-
-  /**
-   * Covers the following target responsibilities.
-   *   - Insures that drush_invoke_process called with fork backend set is able
-   *     to invoke a non-blocking process.
-   */
-  function testBackendFork() {
-    // Need to set DRUSH_COMMAND so that drush will be called and not phpunit
-    define('DRUSH_COMMAND', UNISH_DRUSH);
-
-    // Ensure that file that will be created by forked process does not exist
-    // before invocation.
-    $test_file = UNISH_SANDBOX . '/fork_test.txt';
-    if (file_exists($test_file)) {
-      unlink($test_file);
-    }
-
-    // Sleep for a milisecond, then create the file
-    $ev_php = "usleep(1000);fopen('$test_file','a');";
-    drush_invoke_process("@none", "ev", array($ev_php), array(), array("fork" => TRUE));
-
-    // Test file does not exist immediate after process forked
-    $this->assertEquals(file_exists($test_file), FALSE);
-    // Check every 100th of a second for up to 4 seconds to see if the file appeared
-    $repetitions = 400;
-    while (!file_exists($test_file) && ($repetitions > 0)) {
-      usleep(10000);
-    }
-    // Assert that the file did finally appear
-    $this->assertEquals(file_exists($test_file), TRUE);
   }
 }

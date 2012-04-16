@@ -70,7 +70,7 @@ class shellAliasesCase extends Drush_CommandTestCase {
       'simulate' => NULL,
       'rebase' => NULL,
     );
-    $this->drush('pull', array('origin'), $options, NULL, NULL, self::EXIT_SUCCESS, '2>&1');
+    $this->drush('pull', array('origin'), $options);
     $output = $this->getOutput();
     $this->assertContains('Calling proc_open(git pull origin --rebase);', $output);
   }
@@ -84,7 +84,7 @@ class shellAliasesCase extends Drush_CommandTestCase {
     $this->drush('glopts', array(), $options, 'user@server/path/to/drupal#sitename');
     // $expected might be different on non unix platforms. We shall see.
     // n.b. --config is not included in calls to remote systems.
-    $bash = $this->escapeshellarg('drush  --invoke --simulate --nocolor --uri=sitename --root=/path/to/drupal topic core-global-options 2>&1');
+    $bash = $this->escapeshellarg('drush  --simulate --nocolor --uri=sitename --root=/path/to/drupal topic core-global-options --invoke 2>&1');
     $expected = "Simulating backend invoke: ssh user@server $bash 2>&1";
     $output = $this->getOutput();
     $this->assertEquals($expected, $output, 'Expected remote shell alias to a drush command was built');
@@ -97,13 +97,13 @@ class shellAliasesCase extends Drush_CommandTestCase {
       'ssh-options' => '',
       'rebase' => NULL,
     );
-    $this->drush('pull', array('origin'), $options, 'user@server/path/to/drupal#sitename', NULL, self::EXIT_SUCCESS, '2>&1');
+    $this->drush('pull', array('origin'), $options, 'user@server/path/to/drupal#sitename');
     // $expected might be different on non unix platforms. We shall see.
     $expected = "Calling proc_open(ssh  user@server 'cd /path/to/drupal && git pull origin --rebase');";
     $output = $this->getOutput();
     $this->assertEquals($expected, $output, 'Expected remote shell alias to a bash command was built');
   }
-
+  
   /*
    * Test shell aliases with simple replacements -- no alias.
    */
@@ -117,7 +117,7 @@ class shellAliasesCase extends Drush_CommandTestCase {
     $output = $this->getOutput();
     $this->assertEquals($expected, $output);
   }
-
+  
   /*
    * Test shell aliases with complex replacements -- no alias.
    */
@@ -128,7 +128,7 @@ class shellAliasesCase extends Drush_CommandTestCase {
     // echo test has replacements that are not satisfied, so this is expected to return an error.
     $this->drush('echotest', array(), $options, NULL, NULL, self::EXIT_ERROR);
   }
-
+  
   /*
    * Test shell aliases with replacements -- alias.
    */
@@ -144,7 +144,7 @@ class shellAliasesCase extends Drush_CommandTestCase {
     $output = $this->getOutput();
     $this->assertEquals($expected, $output);
   }
-
+  
   /*
    * Test shell aliases with replacements and compound commands.
    */
@@ -159,7 +159,7 @@ class shellAliasesCase extends Drush_CommandTestCase {
     $this->assertEquals($expected, $output);
   }
 
-
+  
   /*
    * Test shell aliases with multiple config files.
    */
@@ -175,3 +175,4 @@ class shellAliasesCase extends Drush_CommandTestCase {
   }
 
 }
+
