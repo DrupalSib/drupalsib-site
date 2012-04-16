@@ -1,6 +1,7 @@
 name = drupalsib_site_feature_panels
 core = 7.x
 package = Features
+php = 5.2.4
 dependencies[] = ctools
 dependencies[] = page_manager
 features[ctools][] = page_manager:pages_default:1

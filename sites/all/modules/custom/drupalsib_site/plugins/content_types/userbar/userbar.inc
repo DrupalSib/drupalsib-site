@@ -1,15 +1,5 @@
 <?php
 
-/**
- * @file
- * Plugin to handle the 'node' content type which allows individual nodes
- * to be embedded into a panel.
- */
-
-/**
- * Plugins are described by creating a $plugin array which will be used
- * by the system that includes this file.
- */
 $plugin = array(
   'title' => t('Userbar'),
   'single' => TRUE,
@@ -19,18 +9,11 @@ $plugin = array(
   'hook theme' => 'drupalsib_site_userbar_content_type_theme',
 );
 
-/**
- * Output function for the 'node' content type.
- *
- * Outputs a node based on the module and delta supplied in the configuration.
- */
 function drupalsib_site_userbar_content_type_render($subtype, $conf, $panel_args) {
   global $user;
   $block = new stdClass();
 
   $links = '';
-
-
 
   if (user_is_anonymous()) {
     $login_link = l('&nbsp' . t('Вход'), 'user/login', array('html' => TRUE));
@@ -48,14 +31,12 @@ function drupalsib_site_userbar_content_type_render($subtype, $conf, $panel_args
           'style_name' => 'login_img'
           ));
     }
-    // ПИШИТ ЭДЕСЬ ОШИБКА $img_link = l($avatar, "user/$user->uid", array('html' => TRUE));
+    $img_link = l($avatar, "user/$user->uid", array('html' => TRUE));
     $nick_link = l($user->name, "user/$user->uid", array('html' => TRUE));
-    $mes_link = l(t('Сообщения'), '#', array('html' => TRUE));
-    $out_link = l(t('Выйти'), '', array('html' => TRUE));
+    $out_link = l(t('Выйти'), 'user/logout', array('html' => TRUE));
 
-    // ПИШИТ ЭДЕСЬ ОШИБКА$links .= '<ul><li class="first">' . $img_link . '</li>' .
+    $links .= '<ul><li class="first">' . $img_link . '</li>' .
         '<li>' . $nick_link . '</li>' .
-        '<li>' . $mes_link . '</li>' .
         '<li>' . $out_link . '</li></ul>';
   }
 

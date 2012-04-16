@@ -10,8 +10,10 @@ $plugin = array(
 );
 
 function drupalsib_site_logobar_content_type_render($subtype, $conf, $panel_args) {
-  $site_slogan = variable_get('site_slogan', '');
-  $output = theme('drupalsib_site_logobar', array('site_slogan' => $site_slogan));
+
+  $site_logo = l('<img src="/' . DRUPALSIB_SITE_THEME_PATH . '/images/logo.png" alt="homepage"/>', "/", array('html' => TRUE));
+  $site_slogan = '<span>' . variable_get('site_slogan', '') . '</span>';  
+  $output = theme('drupalsib_site_logobar', array('site_logo' => $site_logo, 'site_slogan' => $site_slogan));
   $block = new stdClass();
   $block->content = $output;
   return $block;
