@@ -17,15 +17,52 @@ $plugin = array(
 
 function drupalsib_site_footerlink_content_type_render($subtype, $conf, $panel_args) {
   global $base_url;
-//$search =  drupal_get_form('search_block_form');  
+  
   $menu_list = drupalsib_site_footerlink_menus();
   
-  $main_menu_tree = menu_tree($conf['menu_left']);//menu_tree_page_data('main-menu'); 
-  foreach ($main_menu_tree as $mid => $key){
+  $main_menu_tree = menu_tree($conf['menu_left']);
+  $footer_menu = '<div class="ds_footer_cells"><div id="ds_footer_title"><h3>';
+  $footer_menu .= $menu_list[$conf['menu_left']];
+  $footer_menu .= '</h3></div><ul id="block-one">';
+  foreach ($main_menu_tree as $mid => $key){    
     if (isset($key['#title'])){
-      $footer_menu[] = '<li>' . l($key['#title'], $key['#href']) . '</li>';
+      $footer_menu .= '<li>' . l($key['#title'], $key['#href']) . '</li>';
     }
   }
+  $footer_menu .= '</ul></div>';
+  
+  $main_menu_tree = menu_tree($conf['menu_center_left']);
+  $footer_menu .= '<div class="ds_footer_cells"><div id="ds_footer_title"><h3>';
+  $footer_menu .= $menu_list[$conf['menu_center_left']];
+  $footer_menu .= '</h3></div><ul id="block-two">';
+  foreach ($main_menu_tree as $mid => $key){    
+    if (isset($key['#title'])){
+      $footer_menu .= '<li>' . l($key['#title'], $key['#href']) . '</li>';
+    }
+  }
+  $footer_menu .= '</ul></div>';
+  
+  $main_menu_tree = menu_tree($conf['menu_center_right']);
+  $footer_menu .= '<div class="ds_footer_cells"><div id="ds_footer_title"><h3>';
+  $footer_menu .= $menu_list[$conf['menu_center_right']];
+  $footer_menu .= '</h3></div><ul id="block-three">';
+  foreach ($main_menu_tree as $mid => $key){    
+    if (isset($key['#title'])){
+      $footer_menu .= '<li>' . l($key['#title'], $key['#href']) . '</li>';
+    }
+  }
+  $footer_menu .= '</ul></div>';
+  
+  $main_menu_tree = menu_tree($conf['menu_right']);
+  $footer_menu .= '<div class="ds_footer_cells"><div id="ds_footer_title"><h3>';
+  $footer_menu .= $menu_list[$conf['menu_right']];
+  $footer_menu .= '</h3></div><ul id="block-four">';
+  foreach ($main_menu_tree as $mid => $key){    
+    if (isset($key['#title'])){
+      $footer_menu .= '<li>' . l($key['#title'], $key['#href']) . '</li>';
+    }
+  }
+  $footer_menu .= '</ul></div>';  
   
   $output = theme('drupalsib_site_footerlink', array('footer_menu' => $footer_menu));
   $block = new stdClass();

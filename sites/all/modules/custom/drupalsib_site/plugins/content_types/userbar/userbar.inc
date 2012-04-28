@@ -14,6 +14,8 @@ function drupalsib_site_userbar_content_type_render($subtype, $conf, $panel_args
   $block = new stdClass();
 
   $links = '';
+  
+  $img_link = '';
 
   if (user_is_anonymous()) {
     $login_link = l('&nbsp' . t('Вход'), 'user/login', array('html' => TRUE));
@@ -30,8 +32,9 @@ function drupalsib_site_userbar_content_type_render($subtype, $conf, $panel_args
           'path' => $user->picture->uri,
           'style_name' => 'login_img'
           ));
+      $img_link = l($avatar, "user/$user->uid", array('html' => TRUE));
     }
-    $img_link = l($avatar, "user/$user->uid", array('html' => TRUE));
+    
     $nick_link = l($user->name, "user/$user->uid", array('html' => TRUE));
     $out_link = l(t('Выйти'), 'user/logout', array('html' => TRUE));
 
