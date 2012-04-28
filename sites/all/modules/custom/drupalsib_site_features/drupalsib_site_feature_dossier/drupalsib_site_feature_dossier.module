@@ -1,0 +1,7 @@
+<?php
+/**
+ * @file
+ * Code for the drupalsib_site_feature_dossier feature.
+ */
+
+include_once 'drupalsib_site_feature_dossier.features.inc';
