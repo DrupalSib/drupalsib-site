@@ -511,11 +511,7 @@ function drush_get_projects(&$extensions = NULL) {
     // There's a special case, a project called "sites", this is the reason for
     // the second condition here.
     if ((in_array(basename($path), $reserved)) && (!in_array($name, $reserved))) {
-      $extension_list = array();
-      foreach ($extensions as $extension) {
-        $extension_list[] = $extension->name;
-      }
-      drush_log(dt('Error while trying to find the common path for enabled extensions of project !project. Extensions are: !extensions.', array('!project' => $name, '!extensions' => implode(', ', $extension_list))), 'error');
+      drush_log(dt('Error while trying to find the common path for enabled extensions of project !project. Extensions are: !extensions.', array('!project' => $name, '!extensions' => implode(', ', $extensions))), 'error');
     }
     else {
       $projects[$name]['path'] = $path;
@@ -750,9 +746,9 @@ function drush_pm_find_project_from_extension($extension) {
 }
 
 /**
- * Validate callback. Determine the modules and themes that the user would like enabled.
+ * Command callback. Enable one or more extensions from downloaded projects.
  */
-function drush_pm_enable_validate() {
+function drush_pm_enable() {
   $args = pm_parse_arguments(func_get_args());
 
   $extension_info = drush_get_extensions();
@@ -862,36 +858,6 @@ function drush_pm_enable_validate() {
       }
     }
   }
-  
-  $searchpath = array();
-  foreach (array_merge($modules, $themes) as $name) {
-    $searchpath[] = dirname($extension_info[$name]->filename);
-  }
-  // Add all modules that passed validation to the drush
-  // list of commandfiles (if they have any).  This
-  // will allow these newly-enabled modules to participate
-  // in the pre-pm_enable and post-pm_enable hooks.
-  if (!empty($searchpath)) {
-    _drush_add_commandfiles($searchpath);
-  }
-  
-  drush_set_context('PM_ENABLE_EXTENSION_INFO', $extension_info);
-  drush_set_context('PM_ENABLE_MODULES', $modules);
-  drush_set_context('PM_ENABLE_THEMES', $themes);
-  
-  return TRUE;
-}
-
-/**
- * Command callback. Enable one or more extensions from downloaded projects.
- * Note that the modules and themes to be enabled were evaluated during the
- * pm-enable validate hook, above.
- */
-function drush_pm_enable() {
-  // Get the data built during the validate phase
-  $extension_info = drush_get_context('PM_ENABLE_EXTENSION_INFO');
-  $modules = drush_get_context('PM_ENABLE_MODULES');
-  $themes = drush_get_context('PM_ENABLE_THEMES');
 
   // Inform the user which extensions will finally be enabled.
   $extensions = array_merge($modules, $themes);
@@ -919,19 +885,26 @@ function drush_pm_enable() {
   // Inform the user of final status.
   $rsc = drush_db_select('system', array('name', 'status'), 'name IN (:extensions)', array(':extensions' => $extensions));
   $problem_extensions = array();
+  $searchpath = array();
   while ($extension = drush_db_fetch_object($rsc)) {
     if ($extension->status) {
       drush_log(dt('!extension was enabled successfully.', array('!extension' => $extension->name)), 'ok');
+      $searchpath[] = dirname($extension_info[$extension->name]->filename);
     }
     else {
       $problem_extensions[] = $extension->name;
     }
   }
+  // Add all modules that were enabled to the drush
+  // list of commandfiles (if they have any).  This
+  // will allow these newly-enabled modules to participate
+  // in the post_pm_enable hook.
+  if (!empty($searchpath)) {
+    _drush_add_commandfiles($searchpath);
+  }
   if (!empty($problem_extensions)) {
     return drush_set_error('DRUSH_PM_ENABLE_EXTENSION_ISSUE', dt('There was a problem enabling !extension.', array('!extension' => implode(',', $problem_extensions))));
   }
-  // Return the list of extensions enabled
-  return $extensions;
 }
 
 /**

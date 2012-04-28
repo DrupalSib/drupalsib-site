@@ -15,7 +15,7 @@ function make_parse_info_file($makefile, $parsed = TRUE) {
   if (!($data = make_get_data($makefile))) {
     return drush_set_error(dt('Invalid or empty make file: %makefile', array('%makefile' => $makefile)));
   }
-  if (!($info = _drush_drupal_parse_info_file($data))) {
+  if (!($info = _make_parse_info_file($data))) {
     return FALSE;
   }
   if (!empty($info['includes'])) {
@@ -41,7 +41,7 @@ function make_parse_info_file($makefile, $parsed = TRUE) {
     }
     $includes[] = $data;
     $data = implode("\n", $includes);
-    $info = _drush_drupal_parse_info_file($data);
+    $info = _make_parse_info_file($data);
   }
   if ($parsed) {
     return $info;
@@ -52,73 +52,65 @@ function make_parse_info_file($makefile, $parsed = TRUE) {
 }
 
 /**
- * Remove entries in the info file in accordance with the options passed in.
- * Entries are either explicitly 'allowed' (with the $include_only parameter) in
- * which case all *other* entries will be excluded.
- *
- * @param array $info
- *   A parsed info file.
- *
- * @param array $include_only
- *   (Optional) Array keyed by entry type (e.g. 'libraries') against an array of
- *   allowed keys for that type. The special value '*' means 'all entries of
- *   this type'. If this parameter is omitted, no entries will be excluded.
- *
- * @return array
- *   The $info array, pruned if necessary.
+ * Parse the make file.
  */
-function make_prune_info_file($info, $include_only = array()) {
+function _make_parse_info_file($data) {
+  if (!$data) {
+    return FALSE;
+  }
 
-  // We may get passed FALSE in some cases.
-  // Also we cannot prune an empty array, so no point in this code running!
-  if (empty($info)) {
+  if (preg_match_all('
+    @^\s*                           # Start at the beginning of a line, ignoring leading whitespace
+    ((?:
+      [^=;\[\]]|                    # Key names cannot contain equal signs, semi-colons or square brackets,
+      \[[^\[\]]*\]                  # unless they are balanced and not nested
+    )+?)
+    \s*=\s*                         # Key/value pairs are separated by equal signs (ignoring white-space)
+    (?:
+      ("(?:[^"]|(?<=\\\\)")*")|     # Double-quoted string, which may contain slash-escaped quotes/slashes
+      (\'(?:[^\']|(?<=\\\\)\')*\')| # Single-quoted string, which may contain slash-escaped quotes/slashes
+      ([^\r\n]*?)                   # Non-quoted string
+    )\s*$                           # Stop at the next end of a line, ignoring trailing whitespace
+    @msx', $data, $matches, PREG_SET_ORDER)) {
+    $info = array();
+    foreach ($matches as $match) {
+      // Fetch the key and value string.
+      $i = 0;
+      foreach (array('key', 'value1', 'value2', 'value3') as $var) {
+        $$var = isset($match[++$i]) ? $match[$i] : '';
+      }
+      $value = stripslashes(substr($value1, 1, -1)) . stripslashes(substr($value2, 1, -1)) . $value3;
+
+      // Parse array syntax.
+      $keys = preg_split('/\]?\[/', rtrim($key, ']'));
+      $last = array_pop($keys);
+      $parent = &$info;
+
+      // Create nested arrays.
+      foreach ($keys as $key) {
+        if ($key == '') {
+          $key = count($parent);
+        }
+        if (!isset($parent[$key]) || !is_array($parent[$key])) {
+          $parent[$key] = array();
+        }
+        $parent = &$parent[$key];
+      }
+
+      // Handle PHP constants.
+      if (defined($value)) {
+        $value = constant($value);
+      }
+
+      // Insert actual value.
+      if ($last == '') {
+        $last = count($parent);
+      }
+      $parent[$last] = $value;
+    }
     return $info;
   }
-
-  // We will accrue an explanation of our activities here.
-  $msg = array();
-  $msg['scope'] = dt("Drush make restricted to the following entries:");
-
-  $pruned = FALSE;
-
-  if (count(array_filter($include_only))) {
-    $pruned = TRUE;
-    foreach ($include_only as $type => $keys) {
-
-      // For translating
-      // dt("Projects");
-      // dt("Libraries");
-      $type_title = dt(ucfirst($type));
-
-      // Handle the special '*' value.
-      if (in_array('*', $keys)) {
-        $msg[$type] = dt("!entry_type: <All>", array('!entry_type' => $type_title));
-      }
-
-      // Handle a (possibly empty) array of keys to include/exclude.
-      else {
-        $info[$type] = array_intersect_key($info[$type], array_fill_keys($keys, 1));
-        unset($msg[$type]);
-        if (!empty($info[$type])) {
-          $msg[$type] = dt("!entry_type: %make_entries", array('!entry_type' => $type_title, '%make_entries' => implode(', ', array_keys($info[$type]))));
-        }
-      }
-    }
-  }
-
-  if ($pruned) {
-    // Make it clear to the user what's going on.
-    drush_log(implode("\n", $msg), 'ok');
-
-    // Throw an error if these restrictions reduced the make to nothing.
-    if (empty($info['projects']) && empty($info['libraries'])) {
-      // This error mentions the options explicitly to make it as clear as
-      // possible to the user why this error has occurred.
-      make_error('BUILD_ERROR', dt("All projects and libraries have been excluded. Review the 'projects' and 'libraries' options."));
-    }
-  }
-
-  return $info;
+  return FALSE;
 }
 
 /**
@@ -360,17 +352,28 @@ function make_clean_tmp() {
  */
 function make_prepare_install($build_path) {
   $default = make_tmp() . '/__build__/sites/default';
-  drush_copy_dir($default . DIRECTORY_SEPARATOR . 'default.settings.php', $default . DIRECTORY_SEPARATOR . 'settings.php', TRUE);
+  drush_shell_exec("cp %s %s", $default . '/default.settings.php', $default . '/settings.php');
   drush_mkdir($default . '/files');
-  chmod($default . DIRECTORY_SEPARATOR . 'settings.php', 0666);
-  chmod($default . DIRECTORY_SEPARATOR . 'files', 0777);
+  drush_shell_exec("chmod a+w %s %s", $default . '/settings.php', $default . '/files');
 }
 
 /**
  * Calculate a cksum on each file in the build, and md5 the resulting hashes.
  */
 function make_md5() {
-  return drush_dir_md5(make_tmp());
+  if (drush_shell_exec("( find %s -type f -exec cksum {} \; )", make_tmp())) {
+    $hashes = array();
+    foreach (drush_shell_exec_output() as $line) {
+      // Remove the temporary build path which includes a (relatively)
+      // unique timestamp.
+      $line = str_replace(make_tmp(), '', $line);
+      // Trim to sanitize.
+      $line = trim($line);
+      $hashes[] = $line;
+    }
+    sort($hashes);
+    return md5(implode("\n", $hashes));
+  }
 }
 
 /**
@@ -384,14 +387,14 @@ function make_tar($build_path) {
   $dirname = basename($build_path, '.tar.gz');
   // Move the build directory to a more human-friendly name, so that tar will
   // use it instead.
-  drush_move_dir($tmp_path . DIRECTORY_SEPARATOR . '__build__', $tmp_path . DIRECTORY_SEPARATOR . $dirname, TRUE);
+  drush_shell_exec("mv %s %s", $tmp_path . '/__build__', $tmp_path . '/' . $dirname);
   // Only move the tar file to it's final location if it's been built
   // successfully.
-  if (drush_shell_exec("%s -C %s -Pczf %s %s", drush_get_tar_executable(), $tmp_path, $tmp_path . '/' . $filename, $dirname)) {
-    drush_move_dir($tmp_path . DIRECTORY_SEPARATOR . $filename, $build_path, TRUE);
+  if (drush_shell_exec("tar -C %s -Pczf %s %s", $tmp_path, $tmp_path . '/' . $filename, $dirname)) {
+    drush_shell_exec("mv %s %s", $tmp_path . '/' . $filename, $build_path);
   };
   // Move the build directory back to it's original location for consistency.
-  drush_move_dir($tmp_path . DIRECTORY_SEPARATOR . $dirname, $tmp_path . DIRECTORY_SEPARATOR . '__build__');
+  drush_shell_exec("mv %s %s", $tmp_path . '/' . $dirname, $tmp_path . '/__build__');
 }
 
 /**
@@ -450,7 +453,7 @@ function make_get_data($data_source) {
   }
   // Remote file.
   else {
-    $file = _make_download_file($data_source);
+    $file = _make_download_file(array('url' => $data_source));
     $data = file_get_contents($file);
     drush_op('unlink', $file);
   }

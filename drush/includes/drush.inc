@@ -813,27 +813,22 @@ function drush_op($function) {
  */
 function drush_download_file($url, $destination = FALSE, $cache_duration = 0) {
   if (drush_get_option('cache') && $cache_duration !== 0 && $cache_dir = drush_directory_cache('download')) {
-    $cache_name = str_replace(array(':', '/', '?'), '-', $url);
+    $cache_name = str_replace(array(':', '/'), '-', $url);
     $cache_file = $cache_dir . "/" . $cache_name;
     // Check for cached, unexpired file.
     if (file_exists($cache_file) && filectime($cache_file) > ($_SERVER['REQUEST_TIME']-$cache_duration)) {
       drush_log(dt('!name retrieved from cache.', array('!name' => $cache_name)));
+      return $cache_file;
     }
     else {
       if (_drush_download_file($url, $cache_file, TRUE)) {
         // Cache was set just by downloading file to right location.
+        return $cache_file;
       }
       elseif (file_exists($cache_file)) {
         drush_log(dt('!name retrieved from an expired cache since refresh failed.', array('!name' => $cache_name)), 'warning');
+        return $cache_file;
       }
-      else {
-        $cache_file = FALSE;
-      }
-    }
-
-    if ($cache_file && copy($cache_file, $destination)) {
-      // Copy cached file to the destination
-      return $destination;
     }
   }
   elseif ($return = _drush_download_file($url, $destination)) {
@@ -1105,7 +1100,7 @@ function drush_preflight_command_dispatch() {
  *
  *   --yes is a global Drush option
  *
- *   -v is an rsync option.  It will make rsync run in verbose mode,
+ *   -v is an rsync option.  It will make rsync run in verbose mode, 
  *     but will not make Drush run in verbose mode due to the fact that
  *     core-rsync sets the 'strict-option-handling' flag.
  *
@@ -1306,7 +1301,6 @@ function drush_backend_packet_log($entry, $backend_options) {
   if (!is_string($entry['message'])) {
     $entry['message'] = implode("\n", (array)$entry['message']);
   }
-  $entry['message'] = $entry['message'];
   $log =& drush_get_context('DRUSH_LOG', array());
   $log[] = $entry;
   // Yes, this looks odd, but we might in fact be a backend command
@@ -1316,9 +1310,10 @@ function drush_backend_packet_log($entry, $backend_options) {
     $entry['message'] = $backend_options['#output-label'] . $entry['message'];
   }
 
-  // If integrate is FALSE, then log messages are stored in DRUSH_LOG,
-  // but are -not- printed to the console.
-  if ($backend_options['integrate']) {
+  // If 'integrate' is true, then _drush_backend_integrate (called via 
+  // drush_backend_packet) will print the log message; if that is the case,
+  // then we do not need to print it again.
+  if (!$backend_options['integrate']) {
     $callback = drush_get_context('DRUSH_LOG_CALLBACK', '_drush_print_log');
     return $callback($entry);
   }

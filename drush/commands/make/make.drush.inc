@@ -33,7 +33,6 @@ function make_drush_command() {
     'examples' => array(
       'drush make example.make example' => 'Build the example.make makefile in the example directory.',
       'drush make --no-core --contrib-destination=. installprofile.make' => 'Build an installation profile within an existing Drupal site',
-      'drush make http://example.com/example.make example' => 'Build the remote example.make makefile in the example directory.',
     ),
     'options' => array(
       'version' => 'Print the make API version and exit.',
@@ -61,14 +60,6 @@ function make_drush_command() {
       'translations' => 'Retrieve translations for the specified comma-separated list of language(s) if available for all projects.',
       'working-copy' => 'Preserves VCS directories, like .git, for projects downloaded using such methods.',
       'download-mechanism' => 'How to download files. Should be autodetected, but this is an override if it doesn\'t work. Options are "curl" and "make" (a native download method).',
-      'projects' => array(
-        'description' => 'Restrict the make to this comma-separated list of projects. To specify all projects, pass *.',
-        'example' => 'views,ctools',
-      ),
-      'libraries' => array(
-        'description' => 'Restrict the make to this comma-separated list of libraries. To specify all libraries, pass *.',
-        'example' => 'tinymce',
-      ),
     ),
     'engines' => array('release_info'),
     'topics' => array('docs-make', 'docs-make-example'),
@@ -146,10 +137,6 @@ function make_drush_help($section) {
 function make_make_complete() {
   return array(
     'files' => array(
-      'directories' => array(
-        'pattern' => '*',
-        'flags' => GLOB_ONLYDIR,
-      ),
       'make' => array(
         'pattern' => '*.make',
       ),
@@ -173,14 +160,6 @@ function drush_make($makefile = NULL, $build_path = NULL) {
   }
 
   $info = make_parse_info_file($makefile);
-
-  // Support making just a portion of a make file.
-  $include_only = array(
-    'projects' => array_filter(drush_get_option_list('projects')),
-    'libraries' => array_filter(drush_get_option_list('libraries')),
-  );
-  $info = make_prune_info_file($info, $include_only);
-
   if ($info === FALSE || ($info = make_validate_info_file($info)) === FALSE) {
     return FALSE;
   }
@@ -410,8 +389,6 @@ function make_projects($recursion, $contrib_destination, $info, $build_path) {
       );
 
       $common_options = drush_redispatch_get_options();
-      // Merge in stdin options since we process makefiles recursively. See http://drupal.org/node/1510180.
-      $common_options = array_merge($common_options, drush_get_context('stdin'));
       // Package handler should use 'wget'.
       $common_options['package-handler'] = 'wget';
 
@@ -500,27 +477,16 @@ function make_move_build($build_path) {
   $tmp_path = make_tmp();
   $ret = TRUE;
   if ($build_path == '.') {
-    $info = drush_scan_directory($tmp_path . DIRECTORY_SEPARATOR . '__build__', '/./', array('.', '..'), 0, FALSE, 'filename', 0, TRUE);
+    drush_shell_exec('ls -A %s', $tmp_path . '/__build__');
+    $info = drush_shell_exec_output();
     foreach ($info as $file) {
-      $destination = $build_path . DIRECTORY_SEPARATOR . $file->basename;
-      if (file_exists($destination)) {
-        // To prevent the removal of top-level directories such as 'modules' or
-        // 'themes', descend in a level if the file exists.
-        // TODO: This only protects one level of directories from being removed.
-        $files = drush_scan_directory($file->filename, '/./', array('.', '..'), 0, FALSE);
-        foreach ($files as $file) {
-          $ret = $ret && drush_copy_dir($file->filename, $destination . DIRECTORY_SEPARATOR . $file->basename, TRUE);
-        }
-      }
-      else {
-        $ret = $ret && drush_copy_dir($file->filename, $destination);
-      }
+      $ret = $ret && drush_shell_exec("cp -Rf %s %s", $tmp_path . '/__build__/' . $file, $build_path);
     }
   }
   else {
     drush_mkdir(dirname($build_path));
-    $ret = drush_move_dir($tmp_path . DIRECTORY_SEPARATOR . '__build__', $tmp_path . DIRECTORY_SEPARATOR . basename($build_path), TRUE);
-    $ret = $ret && drush_copy_dir($tmp_path . DIRECTORY_SEPARATOR . basename($build_path), $build_path);
+    drush_shell_exec("mv %s %s", $tmp_path . '/__build__', $tmp_path . '/' . basename($build_path));
+    drush_shell_exec("cp -Rf %s %s", $tmp_path . '/' . basename($build_path), dirname($build_path));
   }
   if (!$ret) {
     drush_set_error(dt("Cannot move build into place"));

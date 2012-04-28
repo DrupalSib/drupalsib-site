@@ -77,12 +77,6 @@ function drush_invoke($command, $arguments = array()) {
  *        database information for sql-sync via sql-conf.
  *      'interactive'
  *        Overrides the backend invoke process to run commands interactively.
- *      'fork'
- *        Overrides the backend invoke process to run non blocking commands in 
- *        the background. Forks a new process by adding a '&' at the end of the 
- *        command. The calling process does not receive any output from the child 
- *        process. The fork option is used to spawn a process that outlives its
- *        parent.
  *
  * @return
  *   If the command could not be completed successfully, FALSE.
@@ -112,7 +106,7 @@ function drush_invoke_process($site_alias_record, $command_name, $commandline_ar
       'args' => $commandline_args);
     $invoke_multiple = drush_get_option_override($backend_options, 'invoke-multiple', 0);
     if ($invoke_multiple) {
-      $invocations = array_fill(0, $invoke_multiple, $invocations[0]);
+      $invocations = array_fill(0, $invoke_multiple, $invocations);
     }
   }
   return drush_backend_invoke_concurrent($invocations, $commandline_options, $backend_options);
@@ -1455,7 +1449,7 @@ function _drush_add_commandfiles($searchpath, $phase = NULL, $reset = FALSE) {
  * Substrings to ignore during commandfile searching.
  */
 function drush_filename_blacklist() {
-  return array_diff(array('.', '..', 'drush_make', 'examples', 'tests', 'disabled', 'gitcache', 'cache', 'drush4', 'drush5', 'drush6', 'drush7'), array('drush' . DRUSH_MAJOR_VERSION));
+  return array_diff(array('.', '..', 'drush_make', 'examples', 'tests', 'disabled', 'gitcache', 'drush4', 'drush5', 'drush6', 'drush7'), array('drush' . DRUSH_MAJOR_VERSION));
 }
 
 /**

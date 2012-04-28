@@ -32,14 +32,6 @@ class DrushMakeProject {
   protected static $self = array();
 
   /**
-   * Default to overwrite to allow recursive builds to process properly.
-   *
-   * TODO refactor this to be more selective. Ideally a merge would take place
-   * instead of an overwrite.
-   */
-  protected $overwrite = TRUE;
-
-  /**
    * Set attributes and retrieve project information.
    */
   protected function __construct($project) {
@@ -84,41 +76,22 @@ class DrushMakeProject {
     // $this->download so that the download backend has access to it, too.
     if (!empty($this->version) && empty($this->download['full_version'])) {
       $full_version = '';
+      // If the version doesn't already define a core version, prepend it.
+      if (!preg_match('/\d+\.x-\d+.*/', $this->version)) {
+        $full_version = $this->core . '-';
+      }
+      $full_version .= $this->version;
+      // If the project-level version attribute is just a number it's
+      // a major version.
       $matches = array();
-      // Core needs different conversion rules than contrib.
-      if (!empty($this->type) && $this->type == 'core') {
-        // Generally, the version for core is already set properly.
-        $full_version = $this->version;
-        // However, it might just be something like '7' or '7.x', in which
-        // case we need to turn that into '7.x-dev';
-        if (preg_match('/^\d+(\.x)?$/', $this->version, $matches)) {
-          // If there's no '.x' already, append it.
-          if (empty($matches[1])) {
-            $full_version .= '.x';
-          }
-          $full_version .= '-dev';
+      if (preg_match('/\d+(\.x)?$/', $this->version, $matches)) {
+        // If there's no '.x' already, append it.
+        if (empty($matches[1])) {
+          $full_version .= '.x';
         }
+        $full_version .= '-dev';
       }
-      // Contrib.
-      else {
-        // If the version doesn't already define a core version, prepend it.
-        if (!preg_match('/^\d+\.x-\d+.*$/', $this->version)) {
-          // Just find the major version from $this->core so we don't end up
-          // with version strings like '7.12-2.0'.
-          $core_parts = explode('.', $this->core);
-          $full_version = $core_parts[0] . '.x-';
-        }
-        $full_version .= $this->version;
-        // If the project-level version attribute is just a number it's a major
-        // version.
-        if (preg_match('/^\d+(\.x)?$/', $this->version, $matches)) {
-          // If there's no '.x' already, append it.
-          if (empty($matches[1])) {
-            $full_version .= '.x';
-          }
-          $full_version .= '-dev';
-        }
-      }
+
       $this->download['full_version'] = $full_version;
     }
 
@@ -197,7 +170,7 @@ class DrushMakeProject {
         $info = array('url' => $info);
       }
       // Download the patch.
-      if ($filename = _make_download_file($info['url'])) {
+      if ($filename = _make_download_file($info)) {
         $patched = FALSE;
         $output = '';
         // Test each patch style; -p1 is the default with git. See
@@ -216,9 +189,7 @@ class DrushMakeProject {
         // the 'patch' command.
         if (!$patched) {
           foreach ($patch_levels as $patch_level) {
-            // --no-backup-if-mismatch here is a hack that fixes some
-            // differences between how patch works on windows and unix.
-            if ($patched = drush_shell_exec("patch %s --no-backup-if-mismatch -d %s < %s", $patch_level, $project_directory, $filename)) {
+            if ($patched = drush_shell_exec("patch %s -d %s < %s", $patch_level, $project_directory, $filename)) {
               break;
             }
           }
@@ -327,7 +298,7 @@ class DrushMakeProject {
             // modules/system/translations where it can be detected for import
             // by other non-default install profiles.
             if ($this->type === 'core') {
-              $profiles = drush_scan_directory($project_directory . '/profiles', '/.*/', array(), 0, FALSE, 'filename', 0, TRUE);
+              $profiles = drush_scan_directory($project_directory . '/profiles', '/.*/', array(), 0, FALSE);
               foreach ($profiles as $profile) {
                 if (is_dir($project_directory . '/profiles/' . $profile->basename)) {
                   drush_mkdir($project_directory . '/profiles/' . $profile->basename . '/translations');
@@ -418,9 +389,6 @@ class DrushMakeProject {
  * For processing Drupal core projects.
  */
 class DrushMakeProject_Core extends DrushMakeProject {
-  /**
-   * Override constructor for core to properly set contrib destination.
-   */
   protected function __construct(&$project) {
     parent::__construct($project);
     $this->contrib_destination = '';
@@ -451,9 +419,6 @@ class DrushMakeProject_Core extends DrushMakeProject {
  * For processing libraries.
  */
 class DrushMakeProject_Library extends DrushMakeProject {
-  /**
-   * Override constructor for libraries to properly set contrib destination.
-   */
   protected function __construct(&$project) {
     parent::__construct($project);
     // Allow libraries to specify where they should live in the build path.
@@ -482,9 +447,6 @@ class DrushMakeProject_Library extends DrushMakeProject {
  * For processing modules.
  */
 class DrushMakeProject_Module extends DrushMakeProject {
-  /**
-   * Override constructor for modules to properly set contrib destination.
-   */
   protected function __construct(&$project) {
     parent::__construct($project);
     $this->contrib_destination = ($this->base_contrib_destination != '.' ? $this->base_contrib_destination . '/' : '') . 'modules';
@@ -495,10 +457,6 @@ class DrushMakeProject_Module extends DrushMakeProject {
  * For processing installation profiles.
  */
 class DrushMakeProject_Profile extends DrushMakeProject {
-  /**
-   * Override contructor for installation profiles to properly set contrib
-   * destination.
-   */
   protected function __construct(&$project) {
     parent::__construct($project);
     $this->contrib_destination = (!empty($this->destination) ? $this->destination : 'profiles');
@@ -516,9 +474,6 @@ class DrushMakeProject_Profile extends DrushMakeProject {
  * For processing themes.
  */
 class DrushMakeProject_Theme extends DrushMakeProject {
-  /**
-   * Override contructor for themes to properly set contrib destination.
-   */
   protected function __construct(&$project) {
     parent::__construct($project);
     $this->contrib_destination = ($this->base_contrib_destination != '.' ? $this->base_contrib_destination . '/' : '') . 'themes';
@@ -529,9 +484,6 @@ class DrushMakeProject_Theme extends DrushMakeProject {
  * For processing translations.
  */
 class DrushMakeProject_Translation extends DrushMakeProject {
-  /**
-   * Override constructor for translations to properly set contrib destination.
-   */
   protected function __construct(&$project) {
     parent::__construct($project);
     switch ($project['core']) {

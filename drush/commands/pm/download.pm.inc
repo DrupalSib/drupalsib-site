@@ -228,9 +228,8 @@ function drush_pm_download() {
  */
 function pm_drush_pm_download_destination_alter(&$project, $release) {
   // A module is a pure drush command if it has no .module and contain
-  // .drush.inc files.  Skip this test for drush itself, though; we do
-  // not want to download drush to the ~/.drush folder.
-  if (($project['project_type'] == 'module') && ($project['name'] != 'drush')) {
+  // .drush.inc files.
+  if ($project['project_type'] == 'module') {
     $drush_command_files = drush_scan_directory($project['full_project_path'], '/.*\.drush.inc/');
     if (!empty($drush_command_files)) {
       $module_files = drush_scan_directory($project['full_project_path'], '/.*\.module/');

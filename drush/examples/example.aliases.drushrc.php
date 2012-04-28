@@ -41,8 +41,10 @@
  *      on the command line.
  *   2. In one of the default locations:
  *        a. /etc/drush
- *        b. $HOME/.drush
- *        c. The sites/all/drush folder for the current Drupal site
+ *        b. In the drush installation folder
+ *        c. Inside the 'aliases' folder in the drush installation folder
+ *        d. $HOME/.drush
+ *        e. The sites/all/drush folder for the current Drupal site
  *   3. Inside the sites folder of any bootstrapped Drupal site,
  *      or any local Drupal site indicated by an alias used as
  *      a parameter to a command
@@ -156,7 +158,7 @@
  *     is not set, and 'Linux' (or $options['remote-os']) if it is.
  * - 'ssh-options': If the target requires special options, such as a non-
  *     standard port, alternative identity file, or alternative
- *     authentication method, ssh-options can contain a string of extra
+ *     authentication method, ssh- options can contain a string of extra
  *     options that are used with the ssh command, eg "-p 100"
  * - 'parent': The name of a parent alias (e.g. '@server') to use as a basis
  *     for this alias.  Any value of the parent will appear in the child
