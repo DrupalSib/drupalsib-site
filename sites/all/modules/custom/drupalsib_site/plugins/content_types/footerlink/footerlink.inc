@@ -118,6 +118,8 @@ $form['menu_right'] = array(
 '#default_value' => $conf['menu_right'],
 );
 
+kpr($form); die('EEEEEEEEEEEEEEeeeeeeeeeee');
+
 return $form;
 }
 
