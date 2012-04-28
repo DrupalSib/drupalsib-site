@@ -1,0 +1,7 @@
+<?php
+/**
+ * @file
+ * Code for the drupalsib_site_feature_content_type_article feature.
+ */
+
+include_once 'drupalsib_site_feature_content_type_article.features.inc';
