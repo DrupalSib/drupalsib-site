@@ -129,6 +129,7 @@ function drupalsib_site_footerlink_content_type_edit_form_submit($form, &$form_s
 }
 
 function drupalsib_site_footerlink_menus() {
+  return menu_get_menus();/*
   if (function_exists('menu_get_menus')) {
     // If the menu module is enabled, list custom menus.
     $menus = menu_get_menus();
@@ -150,5 +151,5 @@ function drupalsib_site_footerlink_menus() {
     $menu_names[$menu] = isset($menus[$menu]) ? $menus[$menu] : 'Other menu: ' . $menu;
   }
 
-  return $menu_names;
+  return $menu_names;*/
 }
