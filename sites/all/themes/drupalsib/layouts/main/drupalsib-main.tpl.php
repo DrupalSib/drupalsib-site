@@ -23,11 +23,24 @@
         <div id="ds_main">
             <div id="ds_main_inner">
                 <div id="ds_main_left">
-                    <?php print $content['content'];?>
-										
+                    <?php print $content['content'];?>										
                 </div>
                 <div id="ds_main_sidebar">
-                    <?php print $content['sidebar']; ?>
+                  <?php if (!empty($content['sidebar_top'])): ?>
+                    <div class="ds_sidebar_content">
+                      <?php print $content['sidebar_top']; ?>
+                    </div>
+                  <?php endif; ?>
+                  <?php if (!empty($content['sidebar'])): ?>
+                    <div class="ds_sidebar_content">
+                      <?php print $content['sidebar']; ?>
+                    </div>
+                  <?php endif; ?>
+                  <?php if (!empty($content['sidebar_bottom'])): ?>
+                    <div class="ds_sidebar_content">
+                      <?php print $content['sidebar_bottom']; ?>
+                    </div>
+                  <?php endif; ?>
                 </div>
             </div>
         </div>
