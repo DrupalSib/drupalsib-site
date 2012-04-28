@@ -24,9 +24,18 @@ function drupalsib_preprocess_node__headline_teaser(&$vars) {
 function drupalsib_preprocess_node__dossier_full(&$vars) {
   $node = $vars['node'];
   $vars['description'] = $node->field_dossier_description['und'][0]['value'];
-  kpr($node); //die($vars['description']);
+  //kpr($node); //die($vars['description']);
 //  $vars['image'] = theme('image_style', array(
 //       'path' => $node->field_headline_image['und'][0]['uri'],
 //       'style_name' => 'headline_teaser'
 //      ));
 }
+
+function drupalsib_preprocess_panels_pane(&$vars) {
+  switch ($vars['pane']->type) {
+    case 'page_content':
+    case 'node_content':
+      $vars['title'] = '';
+      break;
+  }
+  }
