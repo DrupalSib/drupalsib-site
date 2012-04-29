@@ -19,7 +19,7 @@ function drupalsib_site_footerlink_content_type_render($subtype, $conf, $panel_a
   global $base_url;
   
   $menu_list = drupalsib_site_footerlink_menus();
-  
+  /*
   $main_menu_tree = menu_tree($conf['menu_left']);
   $footer_menu = '<div class="ds_footer_cells"><div id="ds_footer_title"><h3>';
   $footer_menu .= $menu_list[$conf['menu_left']];
@@ -63,7 +63,7 @@ function drupalsib_site_footerlink_content_type_render($subtype, $conf, $panel_a
     }
   }
   $footer_menu .= '</ul></div>';  
-  
+  */
   $output = theme('drupalsib_site_footerlink', array('footer_menu' => $footer_menu));
   $block = new stdClass();
   $block->content = $output;
@@ -81,7 +81,7 @@ function drupalsib_site_footerlink_content_type_theme(&$theme, $plugin) {
 * Returns an edit form for the custom type.
 */
 // The function name is MODULE_NAME_CT_NAME_content_type_edit_form
-function drupalsib_site_footerlink_content_type_edit_form(&$form, &$form_state) {
+function drupalsib_site_footerlink_content_type_edit_form($form, &$form_state) {
 // The current configuration
 $conf = $form_state['conf'];
 
@@ -93,7 +93,7 @@ $form['menu_left'] = array(
 '#description' => t('Chose the menu from the list'),
 '#default_value' => $conf['menu_left'],
 );
-
+/*
 $form['menu_center_left'] = array(
 '#type' => 'select',
 '#title' => t('Select menu center left'),
@@ -119,6 +119,7 @@ $form['menu_right'] = array(
 );
 
 kpr($form); die('EEEEEEEEEEEEEEeeeeeeeeeee');
+*/
 
 return $form;
 }
