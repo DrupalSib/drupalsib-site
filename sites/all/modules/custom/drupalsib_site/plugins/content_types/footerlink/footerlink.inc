@@ -16,9 +16,40 @@ $plugin = array(
 );
 
 function drupalsib_site_footerlink_content_type_render($subtype, $conf, $panel_args) {
-  global $base_url;
+  //global $base_url;
   
-  $menu_list = drupalsib_site_footerlink_menus();
+  $conf['menu']
+  
+  
+  $content = array;
+  $results = menu_tree_page_data($conf['menu']);
+  $menus = array();
+  foreach ($results as $id => $result) {
+    if (!$result['link']['hidden']) {
+      $menus[$id]['title'] = $result['link']['link_title'];
+      $menus[$id]['url'] = $result['link']['link_path'];
+      $menus[$id]['active'] = $result['link']['in_active_trail'];
+    }
+  }
+    
+  if (!empty($menus)) {
+    foreach ($menus as $menu) {    
+      if (isset($key['#title'])){
+        $content[] = l($menu['title'], $menu['url']);
+      }
+      }
+  }
+  
+  $menu_html = '';
+  
+  foreach ($content as $l){
+    $menu_html .= '<li>' . $l . '</li>';
+  }
+  
+  //$menu_list = drupalsib_site_footerlink_menus();
+  
+  
+  
   /*
   $main_menu_tree = menu_tree($conf['menu_left']);
   $footer_menu = '<div class="ds_footer_cells"><div id="ds_footer_title"><h3>';
@@ -64,7 +95,7 @@ function drupalsib_site_footerlink_content_type_render($subtype, $conf, $panel_a
   }
   $footer_menu .= '</ul></div>';  
   */
-  $output = theme('drupalsib_site_footerlink', array('footer_menu' => $footer_menu));
+  $output = theme('drupalsib_site_footerlink', array('menu_html' => $menu_html));
   $block = new stdClass();
   $block->content = $output;
   return $block;
@@ -86,12 +117,12 @@ function drupalsib_site_footerlink_content_type_edit_form($form, &$form_state) {
 $conf = $form_state['conf'];
 
 // This and the next one are normal FAPI form making.
-$form['menu_left'] = array(
+$form['menu'] = array(
 '#type' => 'select',
-'#title' => t('Select menu left'),
+'#title' => t('Select menu '),
 '#options' => drupalsib_site_footerlink_menus(),
 '#description' => t('Chose the menu from the list'),
-'#default_value' => $conf['menu_left'],
+'#default_value' => $conf['menu'],
 );
 /*
 $form['menu_center_left'] = array(
