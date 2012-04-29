@@ -18,7 +18,7 @@ $plugin = array(
 function drupalsib_site_footerlink_content_type_render($subtype, $conf, $panel_args) {
   //global $base_url;
   
-  $conf['menu']
+//  $conf['menu']
   
   
   $content = array;
