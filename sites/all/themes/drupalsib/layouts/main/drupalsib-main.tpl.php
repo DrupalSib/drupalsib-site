@@ -45,7 +45,12 @@
             </div>
         </div>
         <div id="ds_footer">
-            <?php print $content['footer']; ?>
+          <div id="ds_footer_top">
+            <?php if (!empty($content['footer_top'])): ?>
+              <?php print $content['footer_top']; ?>
+            <?php endif; ?>
+          </div>
+          <?php print $content['footer_bottom']; ?>
         </div>
     </div>
 </div>

@@ -65,7 +65,7 @@ h4 {
 }
 
 .ds_login {
-  background-image: url(../bg-toolbar-main.png);
+  background-image: url(../images/bg-toolbar-main.png);
   background-repeat: repeat-x;
   height: 32px;
   position: fixed;
