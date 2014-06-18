@@ -1,0 +1,12 @@
+name = dssocial_core_feature_views_tag_list
+description = Views tag_list
+core = 7.x
+package = Features
+php = 5.2.4
+version = 7.x-1.1
+project = dssocial_core_feature_views_tag_list
+dependencies[] = ctools
+dependencies[] = views
+features[ctools][] = views:views_default:3.0
+features[features_api][] = api:1
+features[views_view][] = tag_list

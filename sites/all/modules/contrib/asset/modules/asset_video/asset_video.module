@@ -1,0 +1,23 @@
+<?php
+/**
+ * @file
+ * Code for the sample video asset.
+ */
+
+/**
+ * Implements hook_default_asset_type().
+ */
+function asset_video_default_asset_type() {
+  $items = array();
+  $items['video'] = entity_import('asset_type', '{
+    "type" : "video",
+    "name" : "Video",
+    "icon" : "AddVideo.png",
+    "description" : "",
+    "help" : "",
+    "weight" : "3",
+    "locked" : "0",
+    "rdf_mapping" : []
+  }');
+  return $items;
+}

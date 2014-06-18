@@ -1,0 +1,40 @@
+<?php
+/**
+ * @file
+ * Install/Update/Uninstall functions for emvideo module.
+ */
+
+/**
+ * Implements hook_field_schema().
+ */
+function emvideo_field_schema($field) {
+  return array(
+    'columns' => array(
+      'url' => array(
+        'type' => 'varchar',
+        'length' => 2048,
+        'not null' => FALSE,
+      ),
+      'provider' => array(
+        'type' => 'varchar',
+        'length' => 2048,
+        'not null' => FALSE,
+      ),
+      'source' => array(
+        'type' => 'varchar',
+        'length' => 2048,
+        'not null' => FALSE,
+      ),
+      'snapshot' => array(
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => FALSE,
+      ),
+    ),
+    'indexes' => array(
+      'url' => array('url'),
+      'provider' => array('provider'),
+      'source' => array('source'),
+    ),
+  );
+}

@@ -1,0 +1,243 @@
+<?php
+/**
+ * @file
+ * Install, update, and uninstall functions for the Asset video module.
+ */
+
+/**
+ * Implements hook_install().
+ */
+function asset_video_install() {
+  field_info_cache_clear();
+  $fields = array();
+
+  // Exported field: 'asset-video-field_asset_video_desc'.
+  $fields['asset-video-field_asset_video_desc'] = array(
+    'field_config' => array(
+      'active' => '1',
+      'cardinality' => '1',
+      'deleted' => '0',
+      'entity_types' => array(),
+      'field_name' => 'field_asset_video_desc',
+      'foreign keys' => array(
+        'format' => array(
+          'columns' => array(
+            'format' => 'format',
+          ),
+          'table' => 'filter_format',
+        ),
+      ),
+      'indexes' => array(
+        'format' => array(
+          0 => 'format',
+        ),
+      ),
+      'locked' => '0',
+      'module' => 'text',
+      'settings' => array(),
+      'translatable' => '0',
+      'type' => 'text_long',
+    ),
+    'field_instance' => array(
+      'bundle' => 'video',
+      'default_value' => NULL,
+      'deleted' => '0',
+      'description' => '',
+      'display' => array(
+        'default' => array(
+          'label' => 'hidden',
+          'module' => 'text',
+          'settings' => array(),
+          'type' => 'text_default',
+          'weight' => '1',
+        ),
+        'full' => array(
+          'label' => 'hidden',
+          'module' => 'text',
+          'settings' => array(),
+          'type' => 'text_default',
+          'weight' => '1',
+        ),
+        'small' => array(
+          'label' => 'hidden',
+          'module' => 'text',
+          'settings' => array(),
+          'type' => 'text_default',
+          'weight' => '1',
+        ),
+        'tooltip' => array(
+          'label' => 'hidden',
+          'module' => 'text',
+          'settings' => array(),
+          'type' => 'text_default',
+          'weight' => '1',
+        ),
+      ),
+      'entity_type' => 'asset',
+      'field_name' => 'field_asset_video_desc',
+      'label' => 'Description',
+      'required' => 0,
+      'settings' => array(
+        'text_processing' => '0',
+        'user_register_form' => FALSE,
+      ),
+      'widget' => array(
+        'active' => 1,
+        'module' => 'text',
+        'settings' => array(
+          'rows' => '4',
+        ),
+        'type' => 'text_textarea',
+        'weight' => '1',
+      ),
+    ),
+  );
+
+  // Exported field: 'asset-video-field_asset_video_file'.
+  $fields['asset-video-field_asset_video_file'] = array(
+    'field_config' => array(
+      'active' => '1',
+      'cardinality' => '1',
+      'deleted' => '0',
+      'entity_types' => array(),
+      'field_name' => 'field_asset_video_file',
+      'foreign keys' => array(),
+      'indexes' => array(
+        'provider' => array(
+          0 => 'provider',
+        ),
+        'source' => array(
+          0 => 'source',
+        ),
+        'url' => array(
+          0 => 'url',
+        ),
+      ),
+      'locked' => '0',
+      'module' => 'emvideo',
+      'settings' => array(),
+      'translatable' => '0',
+      'type' => 'emvideo',
+    ),
+    'field_instance' => array(
+      'bundle' => 'video',
+      'default_value' => NULL,
+      'deleted' => '0',
+      'description' => '',
+      'display' => array(
+        'default' => array(
+          'label' => 'hidden',
+          'module' => 'emvideo',
+          'settings' => array(
+            'height' => 360,
+            'width' => 640,
+          ),
+          'type' => 'emvideo_video',
+          'weight' => '0',
+        ),
+        'full' => array(
+          'label' => 'hidden',
+          'module' => 'emvideo',
+          'settings' => array(
+            'height' => 360,
+            'width' => 640,
+          ),
+          'type' => 'emvideo_video',
+          'weight' => '0',
+        ),
+        'small' => array(
+          'label' => 'hidden',
+          'module' => 'emvideo',
+          'settings' => array(
+            'height' => '180',
+            'width' => '320',
+          ),
+          'type' => 'emvideo_video',
+          'weight' => '0',
+        ),
+        'tooltip' => array(
+          'label' => 'hidden',
+          'module' => 'emvideo',
+          'settings' => array(
+            'height' => '180',
+            'width' => '320',
+          ),
+          'type' => 'emvideo_video',
+          'weight' => '0',
+        ),
+      ),
+      'entity_type' => 'asset',
+      'field_name' => 'field_asset_video_file',
+      'label' => 'Video',
+      'required' => 1,
+      'settings' => array(
+        'user_register_form' => FALSE,
+      ),
+      'widget' => array(
+        'active' => 0,
+        'module' => 'emvideo',
+        'settings' => array(),
+        'type' => 'emvideo_text',
+        'weight' => '2',
+      ),
+    ),
+  );
+
+  foreach ($fields as $field) {
+    // Create or update field.
+    $field_config = $field['field_config'];
+    if ($existing_field = field_info_field($field_config['field_name'])) {
+      field_update_field($field_config);
+    }
+    else {
+      field_create_field($field_config);
+    }
+
+    // Create or update field instance.
+    $field_instance = $field['field_instance'];
+    $existing_instance = field_info_instance($field_instance['entity_type'], $field_instance['field_name'], $field_instance['bundle']);
+    if ($existing_instance) {
+      field_update_instance($field_instance);
+    }
+    else {
+      field_create_instance($field_instance);
+    }
+    variable_set('menu_rebuild_needed', TRUE);
+  }
+
+  // Translatables.
+  // Included for use with string extractors like potx.
+  $t = get_t();
+  $t('Description');
+  $t('Video');
+
+  $bundle_settings = array(
+    'view_modes' => array(
+      'full' => array('custom_settings' => TRUE),
+      'small' => array('custom_settings' => TRUE),
+      'tooltip' => array('custom_settings' => TRUE),
+    ),
+    'extra_fields' => array(
+      'form' => array(
+        'title' => array(
+          'weight' => '0',
+        ),
+      ),
+      'display' => array(),
+    ),
+  );
+  field_bundle_settings('asset', 'video', $bundle_settings);
+
+  assets_set_wysiwyg_modes('video', array(
+    'full' => 'full',
+    'small' => 'small',
+  ));
+}
+
+/**
+ * Implements hook_uninstall().
+ */
+function asset_video_uninstall() {
+  field_delete_field('field_asset_video_desc');
+  field_delete_field('field_asset_video_file');
+}

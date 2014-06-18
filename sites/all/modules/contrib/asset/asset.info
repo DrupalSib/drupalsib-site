@@ -1,0 +1,30 @@
+name = "Asset"
+description = "Provides entity based media assets"
+package = "Media assets"
+core = "7.x"
+
+dependencies[] = entity
+dependencies[] = field_ui
+dependencies[] = field_sql_storage
+dependencies[] = menu
+
+files[] = "asset.install"
+files[] = "includes/asset.controllers.inc"
+files[] = "includes/asset.migrate.inc"
+files[] = "views/asset.views.inc"
+files[] = "views/asset.views_default.inc"
+files[] = "views/handlers/asset_views_handler_field_asset.inc"
+files[] = "views/handlers/asset_views_handler_field_asset_link.inc"
+files[] = "views/handlers/asset_views_handler_field_asset_link_edit.inc"
+files[] = "views/handlers/asset_views_handler_field_asset_link_delete.inc"
+files[] = "views/handlers/asset_views_handler_field_asset_link_insert.inc"
+files[] = "views/handlers/asset_views_handler_argument_asset_aid.inc"
+files[] = "views/handlers/asset_views_plugin_row_asset_view.inc"
+files[] = "theme/theme.inc"
+
+; Information added by drupal.org packaging script on 2013-02-20
+version = "7.x-1.0-beta4"
+core = "7.x"
+project = "asset"
+datestamp = "1361391239"
+

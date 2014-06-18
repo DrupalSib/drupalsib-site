@@ -1,0 +1,162 @@
+#!/usr/bin/php
+<?php
+/**
+ * @file
+ * This script check Drupal code style in commited files and send report if
+ * errors were found.
+ */
+
+// Include config file.
+if (file_exists('/etc/dcq.conf')) {
+  require_once '/etc/dcq.conf';
+}
+else {
+  require_once __DIR__ . '/dcq.conf';
+}
+
+// For example - /var/www/myrepository/.git
+$opt = getopt("p:");
+$path_to_git_repository = $opt['p'];
+
+// Get project name by project dir name.
+$pr_name = explode('/', $path_to_git_repository);
+$project_name = strtolower($pr_name[count($pr_name) - 1]);
+// Remove .git from project name.
+$project_name = substr($project_name, 0, strlen($project_name) - 4);
+
+$exit_code = 0;
+$files = array();
+
+// Get commit information from log.
+exec("git log --name-only HEAD^..HEAD", $files);
+
+// Read branch name from stdin.
+$stdin = explode('refs/heads/', fgets(STDIN));
+
+$branch = $stdin[1];
+
+if (!is_dir("$repo_dir/$project_name")) {
+  // Clone new repository.
+  exec("git clone $path_to_git_repository $repo_dir/$project_name");
+}
+
+// Switch branch and pull git repository.
+exec("git --work-tree=$repo_dir/$project_name/ checkout -f $branch");
+
+// Building an array of ignored files and folders.
+$file_path = "$repo_dir/$project_name/.dcq_ignore";
+$ignore = array();
+if (file_exists($file_path)) {
+  $file = fopen($file_path, "r");
+  if ($file) {
+    while (!feof($file)) {
+      $ignore[] = fgets($file);
+    }
+  }
+}
+
+$letter_listing = '';
+$letter = '';
+$counter = 0;
+
+// The number of ignored items.
+$ignored_items_count = count($ignore);
+$file_ignored_flag = FALSE;
+$file_has_error_flag = FALSE;
+
+foreach ($files as $file) {
+  $letter .= "$file\n";
+
+  // File path.
+  $file_full_path = "$repo_dir/$project_name/$file";
+
+  // Check file only if it exists, to evade errors.
+  if (file_exists($file_full_path) && !is_dir($file_full_path)) {
+    if ($counter > $files_limit) {
+      break;
+    }
+
+    // Check files to ignore.
+    if ($ignored_items_count > 0) {
+      foreach ($ignore as $key => $value) {
+        if (substr($file, 0, strlen(trim($value))) == trim($value) && trim($value) != '') {
+          $letter_listing .= "Ignored  $file\n";
+          $file_ignored_flag = TRUE;
+          continue 2;
+        }
+      }
+    }
+
+    $ext = pathinfo($file_full_path, PATHINFO_EXTENSION);
+
+    // Skip check if file have extension, not defined in $file_exts.
+    if (!in_array($ext, $file_exts)) {
+      continue;
+    }
+
+    $phpcs_output = array();
+    $extensions = implode(',', $file_exts);
+
+    $file_full_path = escapeshellarg($file_full_path);
+    $phpcs_cmd = "phpcs --standard=$standard --extensions=$extensions $file_full_path";
+    exec($phpcs_cmd, $phpcs_output, $ret);
+
+    if ($ret == 0) {
+      continue;
+    }
+    $line = implode("\n", $phpcs_output) . "\n";
+
+    $letter_listing .= $line;
+    $file_has_error_flag = TRUE;
+
+    $counter++;
+  }
+}
+
+// If $letter_listing is not empty, send report by email.
+if ($letter_listing != '') {
+  $letter_listing = "<pre>" . htmlspecialchars("$letter\n\n$letter_listing", ENT_QUOTES) . "</pre>";
+
+  $header = 'MIME-Version: 1.0' . "\r\n";
+  $header .= 'Content-type: text/html; charset=iso-8859-1' . "\r\n";
+
+  // Build emails array.
+  if (isset($emails_by_project[$project_name])) {
+    $email_list = array_merge($emails, $emails_by_project[$project_name]);
+  }
+  else {
+    $email_list = $emails;
+  }
+
+  $mail_success = TRUE;
+  foreach ($email_list as $value) {
+    $mail_success = mail(
+      $value,
+      "Report of checking code on the project $project_name",
+      $letter_listing,
+      $header
+    );
+  }
+
+  $report = '';
+  if ($mail_success) {
+    if ($file_ignored_flag && !$file_has_error_flag) {
+      $report = "\033[0;31mSome files were excluded from the checking! Report was sended.\033[0m\n";
+    }
+    elseif ($file_has_error_flag && !$file_ignored_flag) {
+      $report = "\033[0;31mYour files have Drupal code style errors! Report was sended.\033[0m\n";
+    }
+    elseif ($file_has_error_flag && $file_ignored_flag) {
+      $report = "\033[0;31mYour files have Drupal code style errors, some files
+        were excluded from the checking! Report was sended!\033[0m\n";
+    }
+  }
+  else {
+    $report = "\033[0;31mYour files have Drupal code style errors!
+      When sending a report in the mail was an ERROR.\033[0m\n";
+  }
+  echo "$report";
+
+}
+
+exit($exit_code);

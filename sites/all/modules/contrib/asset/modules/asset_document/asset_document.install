@@ -1,0 +1,211 @@
+<?php
+/**
+ * @file
+ * Install, update, and uninstall functions for the Asset document module.
+ */
+
+/**
+ * Implements hook_install().
+ */
+function asset_document_install() {
+  field_info_cache_clear();
+  $fields = array();
+
+  // Exported field: 'asset-document-field_asset_document_desc'.
+  $fields['asset-document-field_asset_document_desc'] = array(
+    'field_config' => array(
+      'active' => '1',
+      'cardinality' => '1',
+      'deleted' => '0',
+      'entity_types' => array(),
+      'field_name' => 'field_asset_document_desc',
+      'foreign keys' => array(
+        'format' => array(
+          'columns' => array(
+            'format' => 'format',
+          ),
+          'table' => 'filter_format',
+        ),
+      ),
+      'indexes' => array(
+        'format' => array(
+          0 => 'format',
+        ),
+      ),
+      'locked' => '0',
+      'module' => 'text',
+      'settings' => array(),
+      'translatable' => '0',
+      'type' => 'text_long',
+    ),
+    'field_instance' => array(
+      'bundle' => 'document',
+      'default_value' => NULL,
+      'deleted' => '0',
+      'description' => '',
+      'display' => array(
+        'default' => array(
+          'label' => 'hidden',
+          'module' => 'text',
+          'settings' => array(),
+          'type' => 'text_default',
+          'weight' => '2',
+        ),
+        'full' => array(
+          'label' => 'hidden',
+          'module' => 'text',
+          'settings' => array(),
+          'type' => 'text_default',
+          'weight' => '2',
+        ),
+      ),
+      'entity_type' => 'asset',
+      'field_name' => 'field_asset_document_desc',
+      'label' => 'Description',
+      'required' => 0,
+      'settings' => array(
+        'text_processing' => '0',
+        'user_register_form' => FALSE,
+      ),
+      'widget' => array(
+        'active' => 1,
+        'module' => 'text',
+        'settings' => array(
+          'rows' => '4',
+        ),
+        'type' => 'text_textarea',
+        'weight' => '2',
+      ),
+    ),
+  );
+
+  // Exported field: 'asset-document-field_asset_document_file'.
+  $fields['asset-document-field_asset_document_file'] = array(
+    'field_config' => array(
+      'active' => '1',
+      'cardinality' => '1',
+      'deleted' => '0',
+      'entity_types' => array(),
+      'field_name' => 'field_asset_document_file',
+      'foreign keys' => array(
+        'fid' => array(
+          'columns' => array(
+            'fid' => 'fid',
+          ),
+          'table' => 'file_managed',
+        ),
+      ),
+      'indexes' => array(
+        'fid' => array(
+          0 => 'fid',
+        ),
+      ),
+      'locked' => '0',
+      'module' => 'file',
+      'settings' => array(
+        'display_default' => 0,
+        'display_field' => 0,
+        'uri_scheme' => 'public',
+      ),
+      'translatable' => '0',
+      'type' => 'file',
+    ),
+    'field_instance' => array(
+      'bundle' => 'document',
+      'deleted' => '0',
+      'description' => '',
+      'display' => array(
+        'default' => array(
+          'label' => 'hidden',
+          'module' => 'file',
+          'settings' => array(),
+          'type' => 'file_default',
+          'weight' => '1',
+        ),
+        'full' => array(
+          'label' => 'hidden',
+          'module' => 'file',
+          'settings' => array(),
+          'type' => 'file_default',
+          'weight' => '1',
+        ),
+      ),
+      'entity_type' => 'asset',
+      'field_name' => 'field_asset_document_file',
+      'label' => 'Document',
+      'required' => 1,
+      'settings' => array(
+        'description_field' => 0,
+        'file_directory' => 'asset/document',
+        'file_extensions' => 'pdf doc xls docx xlsx odt',
+        'max_filesize' => '',
+        'user_register_form' => FALSE,
+      ),
+      'widget' => array(
+        'active' => 1,
+        'module' => 'file',
+        'settings' => array(
+          'progress_indicator' => 'throbber',
+        ),
+        'type' => 'file_generic',
+        'weight' => '1',
+      ),
+    ),
+  );
+
+  // Translatables.
+  // Included for use with string extractors like potx.
+  $t = get_t();
+  $t('Description');
+  $t('Document');
+
+
+  foreach ($fields as $field) {
+    // Create or update field.
+    $field_config = $field['field_config'];
+    if ($existing_field = field_info_field($field_config['field_name'])) {
+      field_update_field($field_config);
+    }
+    else {
+      field_create_field($field_config);
+    }
+
+    // Create or update field instance.
+    $field_instance = $field['field_instance'];
+    $existing_instance = field_info_instance($field_instance['entity_type'], $field_instance['field_name'], $field_instance['bundle']);
+    if ($existing_instance) {
+      field_update_instance($field_instance);
+    }
+    else {
+      field_create_instance($field_instance);
+    }
+    variable_set('menu_rebuild_needed', TRUE);
+  }
+
+  $bundle_settings = array(
+    'view_modes' => array(
+      'full' => array('custom_settings' => TRUE),
+      'small' => array('custom_settings' => FALSE),
+      'tooltip' => array('custom_settings' => FALSE),
+    ),
+    'extra_fields' => array(
+      'form' => array(
+        'title' => array(
+          'weight' => '0',
+        ),
+      ),
+      'display' => array(),
+    ),
+  );
+
+  field_bundle_settings('asset', 'document', $bundle_settings);
+  assets_set_wysiwyg_modes('document', array('full' => 'full'));
+}
+
+/**
+ * Implements hook_uninstall().
+ */
+function asset_document_uninstall() {
+  field_delete_field('field_asset_document_desc');
+  field_delete_field('field_asset_document_file');
+}

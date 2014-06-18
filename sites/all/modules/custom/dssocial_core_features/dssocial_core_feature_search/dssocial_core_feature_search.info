@@ -1,0 +1,11 @@
+name = dssocial_core_feature_search
+description = Search settings
+core = 7.x
+package = Features
+version = 7.x-1.0
+project = dssocial_core_feature_search
+dependencies[] = ctools
+dependencies[] = strongarm
+features[ctools][] = strongarm:strongarm:1
+features[features_api][] = api:1
+features[variable][] = search_active_modules

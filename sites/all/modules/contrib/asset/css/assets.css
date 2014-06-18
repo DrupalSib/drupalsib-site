@@ -1,0 +1,36 @@
+.asset {
+  background-color: #F6F6F2;
+  border-color: #F9F9F9;
+  padding: 8px;
+  clear:both;
+}
+
+.asset.asset-align-right {
+  float: right;
+  margin: 0 0 0 8px;
+}
+
+.asset.asset-align-right img {
+  float: right;
+}
+
+.asset.asset-align-left {
+  float: left;
+  margin: 0 8px 0 0;
+}
+
+.asset.asset-align-left img {
+  float: left;
+}
+
+.asset.asset-align-left object {
+  float: left;
+}
+
+.asset.asset-align-right object {
+  float: right;
+}
+
+.asset div.field {
+  clear: both;
+}

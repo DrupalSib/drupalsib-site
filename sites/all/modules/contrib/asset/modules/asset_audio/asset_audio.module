@@ -1,0 +1,22 @@
+<?php
+/**
+ * @file
+ * Code for the Asset Audio module.
+ */
+
+/**
+ * Implements hook_default_asset_type().
+ */
+function asset_audio_default_asset_type() {
+  $items = array();
+  $items['audio'] = entity_import('asset_type', '{
+    "type" : "audio",
+    "name" : "Audio",
+    "icon" : "AddSound.png",
+    "description" : "",
+    "help" : "",
+    "weight" : "5",
+    "locked" : "0"
+  }');
+  return $items;
+}

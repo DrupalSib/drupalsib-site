@@ -1,0 +1,63 @@
+<?php
+/**
+ * @file
+ * Feeds module integration.
+ */
+
+/*
+ * Implements hook_ctools_plugin_api().
+ */
+function asset_ctools_plugin_api($owner, $api) {
+  if ($owner == 'feeds' && $api == 'plugins') {
+    return array('version' => 1);
+  }
+}
+
+/**
+ * Implements hook_feeds_plugins().
+ */
+function asset_feeds_feeds_plugins() {
+  $info = array();
+  $info['AssetFeedsProcessor'] = array(
+    'name' => 'Asset processor',
+    'description' => 'Create and update assets.',
+    'help' => 'Create and update assets from parsed content.',
+    'handler' => array(
+      'parent' => 'FeedsProcessor',
+      'class' => 'AssetFeedsProcessor',
+      'file' => 'AssetFeedsProcessor.inc',
+      'path' => drupal_get_path('module', 'asset_feeds'),
+    ),
+  );
+  return $info;
+}
+
+/**
+ * Implements hook_asset_insert().
+ */
+function asset_feeds_asset_insert($asset) {
+  // Source attached to asset.
+  asset_feeds_asset_update($asset);
+  if (isset($asset->feeds) && $importer_id = feeds_get_importer_id($asset->type)) {
+    $source = feeds_source($importer_id, $asset->nid);
+    // Start import if requested.
+    if (feeds_importer($importer_id)->config['import_on_create'] && !isset($asset->feeds['suppress_import'])) {
+      $source->startImport();
+    }
+    // Schedule source and importer.
+    $source->schedule();
+    feeds_importer($importer_id)->schedule();
+  }
+}
+
+/**
+ * Implements hook_asset_update().
+ */
+function asset_feeds_asset_update($asset) {
+  // Source attached to asset.
+  if (isset($asset->feeds) && $importer_id = feeds_get_importer_id($asset->type)) {
+    $source = feeds_source($importer_id, $asset->aid);
+    $source->addConfig($asset->feeds);
+    $source->save();
+  }
+}

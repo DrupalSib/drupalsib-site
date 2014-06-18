@@ -1,0 +1,1138 @@
+<?php
+/**
+ * @file
+ * Asset module.
+ */
+
+// Defines.
+define('ASSET_DEFAULT_MODE', 'full');
+define('ASSET_MODULE_PATH', drupal_get_path('module', 'asset'));
+define('ASSET_MODULE_CKEDITOR_PLUGIN_PATH', ASSET_MODULE_PATH . '/ckeditor');
+
+// Includes.
+require_once (ASSET_MODULE_PATH . '/includes/asset.filters.inc');
+
+/**
+ * Implements hook_init().
+ */
+function asset_init() {
+  drupal_add_css(ASSET_MODULE_PATH . '/css/assets.css');
+}
+
+/**
+ * Implements hook_entity_info().
+ */
+function asset_entity_info() {
+  $return = array(
+    'asset' => array(
+      'label' => t('Media Asset'),
+      'plural label' => t('Media Assets'),
+      'label callback' => 'entity_class_label',
+      'access callback' => 'assets_entity_access_callback',
+      'entity class' => 'Asset',
+      'controller class' => 'EntityAPIController',
+      'views controller class' => 'AssetViewsController',
+      'base table' => 'asset',
+      'fieldable' => TRUE,
+      'entity keys' => array(
+        'id' => 'aid',
+        'bundle' => 'type',
+        'label' => 'title',
+      ),
+      'uri callback' => 'entity_class_uri',
+
+      'static cache' => TRUE,
+      'field cache' => TRUE,
+
+      'view modes' => array(
+        'full' => array(
+          'label' => t('Full size'),
+          'custom settings' => TRUE,
+        ),
+        'small' => array(
+          'label' => t('Small'),
+          'custom settings' => FALSE,
+        ),
+        'tooltip' => array(
+          'label' => t('Tooltip'),
+          'custom settings' => FALSE,
+        ),
+      ),
+      'bundle keys' => array(
+        'bundle' => 'type',
+      ),
+      'bundles' => array(),
+      'module' => 'asset',
+      'admin ui' => array(
+        'path' => 'admin/content/assets',
+        'file' => 'includes/asset.admin.inc',
+        'controller class' => 'AssetsUIController',
+      ),
+    ),
+
+    'asset_type' => array(
+      'label' => t('Asset type'),
+      'plural label' => t('Asset types'),
+      'access callback' => 'assets_type_entity_access_callback',
+      'entity class' => 'AssetType',
+      'controller class' => 'EntityAPIControllerExportable',
+      'base table' => 'asset_type',
+      'bundle of' => 'asset',
+      'exportable' => TRUE,
+      'entity keys' => array(
+        'id' => 'id',
+        'name' => 'type',
+        'label' => 'name',
+      ),
+      'module' => 'asset',
+      'admin ui' => array(
+        'path' => 'admin/structure/assets',
+        'file' => 'includes/asset.admin.inc',
+      ),
+    ),
+  );
+
+  // Add bundle info but bypass entity_load() as we cannot use it here.
+  $types = db_select('asset_type', 'at')
+    ->fields('at')
+    ->execute()
+    ->fetchAllAssoc('type');
+
+  foreach ($types as $type_name => $type) {
+    $return['asset']['bundles'][$type_name] = array(
+      'label' => $type->name,
+      'admin' => array(
+        'path' => 'admin/structure/assets/manage/%asset_type',
+        'real path' => 'admin/structure/assets/manage/' . $type_name,
+        'bundle argument' => 4,
+        'access arguments' => array('administer assets'),
+      ),
+    );
+  }
+
+  // Support entity cache module.
+  if (module_exists('entitycache')) {
+    $return['asset']['field cache'] = FALSE;
+    $return['asset']['entity cache'] = TRUE;
+  }
+
+  return $return;
+}
+
+/**
+ * Gets an array of all asset types, keyed by the type name.
+ *
+ * @param $type_name
+ *   If set, the type with the given name is returned.
+ * @return AssetType[]
+ *   Depending whether $type isset, an array of asset types or a single one.
+ */
+function assets_get_types($type_name = NULL) {
+  $types = entity_load_multiple_by_name('asset_type', isset($type_name) ? array($type_name) : FALSE);
+  return isset($type_name) ? reset($types) : $types;
+}
+
+/**
+ * Menu argument loader; Load an asset type by string.
+ *
+ * @param $type
+ *   The machine-readable name of an asset type to load.
+ * @return
+ *   An asset type array or FALSE if $type does not exist.
+ */
+function asset_type_load($type) {
+  return assets_get_types($type);
+}
+
+/**
+ * Returns a list of available asset type names.
+ *
+ * @return array
+ *   Asset type names, keyed by the type.
+ */
+function asset_type_get_names() {
+  $names = array();
+
+  $types = assets_get_types();
+  foreach ($types as $type => $type_object) {
+    $names[$type] = $type_object->name;
+  }
+
+  if (!empty($names)) {
+    asort($names);
+  }
+
+  return $names;
+}
+
+/**
+ * Access callback for the entity API.
+ */
+function assets_type_entity_access_callback($op, $type = NULL, $account = NULL) {
+  return user_access('administer asset types', $account);
+}
+
+/**
+ * Access callback for the entity API.
+ */
+function assets_entity_access_callback($op, $type = NULL, $account = NULL) {
+  switch ($op) {
+    case 'view':
+      return empty($type)
+        // View assets list.
+        ? user_access('access assets overview', $account)
+        // View separate asset.
+        : user_access('access content', $account);
+      break;
+
+    case 'update':
+    case 'edit':
+      return !empty($type->type)
+        ? user_access("edit asset with type $type->type", $account)
+        // Invalid type.
+        : FALSE;
+      break;
+
+    case 'delete':
+      return !empty($type->type)
+        ? user_access("delete asset with type $type->type", $account)
+        // Invalid type.
+        : FALSE;
+      break;
+
+    default:
+      return user_access('administer assets', $account);
+      break;
+  }
+}
+
+/**
+ * Implements hook_permission().
+ */
+function asset_permission() {
+  $permissions = array(
+    'administer asset types' => array(
+      'title' => t('Administer asset types'),
+      'description' => t('Create, edit and delete types of assets'),
+    ),
+    'administer assets' => array(
+      'title' => t('Administer assets'),
+      'description' => t('Create, edit and delete asset entities'),
+    ),
+    'access assets overview' => array(
+      'title' => t('Access the assets overview page'),
+    ),
+  );
+
+  foreach (assets_get_types() as $asset) {
+    $permissions += array(
+      'create asset with type ' . $asset->type => array(
+        'title' => t('Create asset with type %asset', array('%asset' => $asset->name)),
+      ),
+    );
+    $permissions += array(
+      'edit asset with type ' . $asset->type => array(
+        'title' => t('Edit asset with type %asset', array('%asset' => $asset->name)),
+      ),
+    );
+    $permissions += array(
+      'delete asset with type ' . $asset->type => array(
+        'title' => t('Delete asset with type %asset', array('%asset' => $asset->name)),
+      ),
+    );
+  }
+
+  return $permissions;
+}
+
+/**
+ * Check what user have access to create asset with given type.
+ */
+function asset_creation_access($type) {
+  return user_access("create asset with type $type");
+}
+
+/**
+ * Implements hook_menu().
+ */
+function asset_menu() {
+  $items = array();
+
+  $items['admin/content/assets/add'] = array(
+    'page callback' => 'assets_add_page',
+    'file' => 'includes/asset.admin.inc',
+    'title callback' => '_assets_form_action_title',
+    'title arguments' => array('add', 'asset'),
+    'page arguments' => array(),
+    'access callback' => 'entity_access',
+    'access arguments' => array('create', 'asset'),
+  );
+
+  foreach (assets_get_types() as $type) {
+    $type_url_str = str_replace('_', '-', $type->type);
+    $items['admin/content/assets/add/' . $type_url_str] = array(
+      'page callback' => 'assets_add',
+      'page arguments' => array($type->type),
+      'access callback' => 'asset_creation_access',
+      'access arguments' => array($type->type),
+      'file' => 'includes/asset.admin.inc',
+      'title callback' => '_assets_form_page_title',
+      'title arguments' => array('asset_' . $type->type),
+      'weight' => $type->weight,
+    );
+  }
+
+  $items['admin/content/assets/view/%asset'] = array(
+    'page callback'    => 'asset_view_asset',
+    'page arguments'   => array(4),
+    'access callback' => 'entity_access',
+    'access arguments' => array('view', 'asset', 4),
+    'theme callback' => 'asset_get_frontend_theme',
+    'file' => 'includes/asset.admin.inc',
+  );
+
+  $items['admin/assets/add/%'] = array(
+    'title' => 'Media assets',
+    'title callback' => '_assets_form_page_title',
+    'title arguments' => array(3),
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('assets_wysiwyg_form', 'add', 3),
+    'access arguments' => array('administer assets'),
+    'type' => MENU_CALLBACK,
+    'file' => 'includes/asset.admin.inc',
+  );
+
+  $items['admin/assets/edit/%asset/%/%'] = array(
+    'title' => 'Edit asset',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('assets_wysiwyg_form', 'edit', 3, 4, 5),
+    'access arguments' => array('administer assets'),
+    'type' => MENU_CALLBACK,
+    'file' => 'includes/asset.admin.inc',
+  );
+
+  $items['admin/assets/override'] = array(
+    'title' => 'Override asset',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('assets_override_form'),
+    'access arguments' => array('administer assets'),
+    'type' => MENU_CALLBACK,
+    'file' => 'includes/asset.admin.inc',
+  );
+
+  $items['admin/assets/get'] = array(
+    'theme callback' => 'asset_get_frontend_theme',
+    'page callback' => 'assets_get_content',
+    'page arguments' => array(3),
+    'access arguments' => array('administer assets'),
+    'type' => MENU_CALLBACK,
+    'file' => 'includes/asset.admin.inc',
+  );
+
+  $items['admin/assets/getfull'] = array(
+    'theme callback' => 'asset_get_frontend_theme',
+    'page callback' => 'asset_get_full_content',
+    'page arguments' => array(3),
+    'access arguments' => array('administer assets'),
+    'type' => MENU_CALLBACK,
+    'file' => 'includes/asset.admin.inc',
+  );
+
+  $items['admin/assets/tag/%/%/%'] = array(
+    'theme callback' => 'asset_get_frontend_theme',
+    'page callback' => '_asset_get_tag',
+    'page arguments' => array(3, 4, 5),
+    'access arguments' => array('administer assets'),
+    'type' => MENU_CALLBACK,
+    'file' => 'includes/asset.admin.inc',
+  );
+
+  $items['assets/tooltip/%asset/%'] = array(
+    'theme callback' => 'asset_get_frontend_theme',
+    'page callback' => 'asset_tooltip_content',
+    'page arguments' => array(2, 3),
+    'access callback' => 'entity_access',
+    'access arguments' => array('view', 'asset', 2),
+    'type' => MENU_CALLBACK,
+    'file' => 'includes/asset.admin.inc',
+    'delivery_callback' => 'asset_html_delivery',
+  );
+
+  return $items;
+}
+
+/**
+ * Delivery callback for HTML rendering.
+ */
+function asset_html_delivery($page_callback_result) {
+  // Check if header is set.
+  if (is_null(drupal_get_http_header('Content-Type'))) {
+    drupal_add_http_header('Content-Type', 'text/html; charset=utf-8');
+  }
+
+  print $page_callback_result;
+}
+
+/**
+ * Implements hook_menu_local_tasks_alter().
+ */
+function asset_menu_local_tasks_alter(&$data, $router_item, $root_path) {
+  // Add action link to 'admin/content/assets/add' on 'admin/content/assets' page.
+  if ($root_path == 'admin/content/assets') {
+    $item = menu_get_item('admin/content/assets/add');
+    if ($item['access']) {
+      $data['actions']['output'][] = array(
+        '#theme' => 'menu_local_action',
+        '#link' => $item,
+      );
+    }
+  }
+}
+
+/**
+ * Implements hook_menu_alter().
+ */
+function asset_menu_alter(&$menu) {
+  // Make view page link viewable both as normal item and local task on "admin/content" page.
+  if (isset($menu['admin/content/assets'])) {
+    $menu['admin/content/assets']['type'] = MENU_LOCAL_TASK | MENU_NORMAL_ITEM;
+  }
+}
+
+/**
+ * Implements hook_module_implements_alter().
+ */
+function asset_module_implements_alter(&$implementations, $hook) {
+  // Ensure that our hook is last.
+  if ($hook == 'menu_alter' && isset($implementations['asset'])) {
+    unset($implementations['asset']);
+    $implementations['asset'] = FALSE;
+  }
+}
+
+/**
+ * Fetch an asset object.
+ *
+ * @param $aid
+ *   Integer specifying the asset id.
+ * @param $reset
+ *   A boolean indicating that the internal cache should be reset.
+ * @return
+ *   A fully-loaded $asset object or FALSE if it cannot be loaded.
+ *
+ * @see asset_load_multiple()
+ */
+function asset_load($aid, $reset = FALSE) {
+  $assets = asset_load_multiple(array($aid), array(), $reset);
+  return reset($assets);
+}
+
+/**
+ * Load multiple assets based on certain conditions.
+ *
+ * @param $aids
+ *   An array of asset IDs.
+ * @param $conditions
+ *   An array of conditions to match against the {asset} table.
+ * @param $reset
+ *   A boolean indicating that the internal cache should be reset.
+ * @return
+ *   An array of asset objects, indexed by aid.
+ *
+ * @see entity_load()
+ * @see asset_load()
+ * @see asset_load_by_type()
+ */
+function asset_load_multiple($aids = array(), $conditions = array(), $reset = FALSE) {
+  return entity_load('asset', $aids, $conditions, $reset);
+}
+
+/**
+ * Returns the asset type of the passed asset or asset type string.
+ *
+ * @param $asset
+ *   An asset object or string that indicates the asset type to return.
+ *
+ * @return
+ *   A single asset type, as an object, or FALSE if the asset type is not found.
+ */
+function assets_get_type($asset) {
+  $type = is_object($asset) ? $asset->type : $asset;
+  $types = assets_get_types();
+
+  return isset($types[$type]) ? $types[$type] : FALSE;
+}
+
+/**
+ * Implements hook_filter_info().
+ */
+function asset_filter_info() {
+  $filters['assets_filter'] = array(
+    'title' => t('Convert asset tags to markup'),
+    'description' => t('This filter will convert [[asset:...]] tags into markup'),
+    'process callback' => 'assets_filter_process',
+    'cache' => FALSE,
+  );
+
+  $filters['assets_cut_filter'] = array(
+    'title' => t('Remove asset tags from output'),
+    'description' => t('This filter will remove [[asset:...]] from output'),
+    'process callback' => 'assets_cut_filter_process',
+    'cache' => TRUE,
+  );
+
+  return $filters;
+}
+
+/**
+ * Implements hook_field_extra_fields().
+ */
+function asset_field_extra_fields() {
+  $extra = array();
+  foreach (assets_get_types() as $type) {
+    $extra['asset'][$type->type] = array(
+      'form' => array(
+        'title' => array(
+          'label' => t('Title'),
+          'description' => t('Asset module element'),
+          'weight' => -5,
+        ),
+      ),
+    );
+  }
+
+  return $extra;
+}
+
+/*
+ * Helper function to get the list of icons.
+ */
+function _assets_get_icons() {
+  $dir = ASSET_MODULE_PATH . '/ckeditor/buttons/';
+  $icons = &drupal_static(__FUNCTION__, array());
+
+  if (!$icons) {
+    if (is_dir($dir)) {
+
+      foreach (scandir($dir) as $file_name) {
+        if (!in_array($file_name, array('.', '..'))) {
+          $file_path = $dir . $file_name;
+
+          if (FALSE !== getimagesize($file_path)) {
+            $icons[$file_name] = theme('image', array('path' => $file_path, 'width' => 18, 'height' => 18));
+          }
+        }
+      }
+    }
+  }
+
+  return $icons;
+}
+
+/**
+ * Helper function to get supported field types.
+ */
+function _assets_get_supported_field_types() {
+  // @todo: Provide a hook.
+  return array('text', 'text_long');
+}
+
+/*
+ * Helper function to check the asset field.
+ * Can we provide an override for its value or not.
+ */
+function _assets_get_overridable_fields($asset_type) {
+  $supported_types = _assets_get_supported_field_types();
+  $cache = drupal_static(__FUNCTION__, array());
+
+  if (!isset($cache[$asset_type])) {
+    $cache[$asset_type] = array();
+    $fields_info = field_info_instances('asset', $asset_type);
+
+    foreach ($fields_info as $field_info) {
+      if (!$field_info['required']) {
+        $field_name = $field_info['field_name'];
+        $label = $field_info['label'];
+        $info = field_info_field($field_name);
+
+        if (!empty($info) && in_array($info['type'], $supported_types)) {
+          $cache[$asset_type][$field_name] = array(
+            'type'  => $info['type'],
+            'label' => $label,
+          );
+        }
+      }
+    }
+  }
+
+  return $cache[$asset_type];
+}
+
+/**
+ * Implements hook_ckeditor_plugin().
+ */
+function asset_ckeditor_plugin() {
+  $plugin_name = 'asset';
+  $plugins = array(
+    $plugin_name => array(
+      'name' => $plugin_name,
+      'desc' => t('Media assets'),
+      'path' => ASSET_MODULE_CKEDITOR_PLUGIN_PATH . '/',
+      'buttons' => array(),
+    ),
+  );
+
+  $types = assets_get_types();
+  foreach ($types as $type) {
+    $plugins[$plugin_name]['buttons']['asset_' . $type->type] = array();
+    $plugins[$plugin_name]['buttons']['asset_' . $type->type]['label'] = t('Asset') . ': ' . $type->name;
+    $plugins[$plugin_name]['buttons']['asset_' . $type->type]['icon'] = 'buttons/' . $type->icon;
+  }
+
+  if (module_exists('views')) {
+    $plugins[$plugin_name]['buttons']['assetSearch'] = array(
+      'label' => t('Assets library'),
+      'icon' => 'search.png',
+    );
+  }
+
+  return $plugins;
+}
+
+/**
+ * Implements hook_preprocess_page().
+ *
+ *  Trying to hide unnecessary elements
+ */
+function asset_preprocess_page(&$variables) {
+  if (asset_is_popup()) {
+    module_invoke_all('suppress');
+
+    foreach (element_children($variables['page']) as $key) {
+      if ($key != 'content') {
+        unset($variables['page'][$key]);
+      }
+    }
+
+    if (isset($_GET['pure']) && $_GET['pure']) {
+      $variables['theme_hook_suggestions'][] = 'asset_pure';
+    }
+    else {
+      $variables['theme_hook_suggestions'][] = 'asset_form_page';
+    }
+
+    unset($variables['title_prefix']);
+    unset($variables['title_suffix']);
+    unset($variables['secondary_menu']);
+    $variables['tabs'] = array('#secondary' => '');
+  }
+}
+
+/**
+ * Process variables for entity.tpl.php.
+ */
+function asset_preprocess_entity(&$vars) {
+  if (!empty($vars['asset'])) {
+    if (($vars['asset']->type == 'audio') && !empty($vars['asset']->in_editor)) {
+      if (isset($vars['content']['field_asset_audio'])) {
+        hide($vars['content']['field_asset_audio']);
+      }
+    }
+  }
+}
+
+/**
+ * Implements hook_library().
+ */
+function asset_library() {
+  $libraries['asset_tooltip'] = array(
+    'title' => 'Asset tooltip library',
+    'version' => '1.0',
+    'js' => array(
+      ASSET_MODULE_PATH . '/js/asset-tooltip.js' => array(),
+    ),
+    'css' => array(
+      ASSET_MODULE_PATH . '/css/asset-tooltip.css' => array(),
+    ),
+  );
+
+  $libraries['asset_tooltip_inner'] = array(
+    'title' => 'Asset tooltip library for iframe',
+    'version' => '1.0',
+    'js' => array(
+      ASSET_MODULE_PATH . '/js/asset-tooltip-inner.js' => array(),
+    ),
+    'css' => array(
+      ASSET_MODULE_PATH . '/css/asset-tooltip-inner.css' => array(),
+    ),
+  );
+
+  return $libraries;
+}
+
+/**
+ * Implements hook_preprocess_html().
+ *
+ * If the current page request is inside the tooltip, add appropriate classes
+ * to the <body> element
+ */
+function asset_preprocess_html(&$variables) {
+  if (asset_is_tooltip()) {
+    $variables['classes_array'][] = 'tooltip-iframe-element-body';
+  }
+}
+
+/**
+ * Implements hook_page_alter().
+ */
+function asset_page_alter(&$page) {
+  global $theme_key;
+
+  $tooltip = asset_is_tooltip();
+  $popup = asset_is_popup();
+
+  if ($popup || $tooltip) {
+    drupal_set_breadcrumb(array());
+    module_invoke_all('suppress');
+
+    foreach (element_children($page) as $key) {
+      if ($key != 'content') {
+        unset($page[$key]);
+      }
+    }
+
+    if ($tooltip) {
+      // Add specific theme and library for tooltip iframes.
+      $page['#theme'] = 'asset_tooltip';
+      drupal_add_library('asset', 'asset_tooltip_inner');
+    }
+    // Add css in seven theme for popup.
+    elseif ($popup) {
+      $admin_theme = variable_get('admin_theme', 'seven');
+      if ($theme_key == $admin_theme && ($admin_theme == 'seven')) {
+        drupal_add_css(ASSET_MODULE_PATH . '/css/asset-popup-inner-form.css');
+      }
+    }
+  }
+}
+
+/**
+ * Helper to determine that current path used for tooltip.
+ */
+function asset_is_tooltip() {
+  return drupal_match_path($_GET['q'], 'assets/tooltip/*');
+}
+
+/**
+ * Helper to determine that current path used for popup.
+ */
+function asset_is_popup() {
+  return isset($_GET['render']) && ($_GET['render'] == 'popup');
+}
+
+/**
+ * Generates a placeholder for wysiwyg.
+ */
+function assets_get_placeholder($asset, array $options = array()) {
+  $type = $asset->type;
+  $tag_array = array('[[asset:' . $type . ':' . $asset->aid . ' ');
+  $fields = field_info_instances('asset', $type);
+  $supported_types = _assets_get_supported_field_types();
+
+  foreach ($fields as $field) {
+    if (!$field['required']) {
+      $field_name = $field['field_name'];
+      $info = field_info_field($field_name);
+      $field_type = $info['type'];
+
+      if (in_array($field_type, $supported_types)) {
+        $values = field_get_items('asset', $asset, $field_name);
+
+        if (is_array($values)) {
+          $field_values = array();
+          foreach ($values as $delta => $data) {
+            switch ($field_type) {
+              case 'text_long':
+              case 'text':
+                $field_values[$delta] = $data['value'];
+                break;
+            }
+          }
+
+          $options[$field_name] = $field_values;
+        }
+      }
+    }
+  }
+
+  $tag_array[] = drupal_json_encode($options);
+  $tag_array[] = ']]';
+
+  return implode('', $tag_array);
+}
+
+/**
+ * Implements hook_theme().
+ */
+function asset_theme() {
+  $base = array(
+    'path' => ASSET_MODULE_PATH . '/theme',
+  );
+
+  return array(
+    'asset' => array(
+      'render element' => 'elements',
+      'template' => 'asset',
+    ) + $base,
+    'asset_form_page'  => array(
+      'template' => 'asset-form',
+    ) + $base,
+    'asset_pure'  => array(
+      'template' => 'asset-pure',
+    ) + $base,
+    'asset_tooltip' => array(
+      'render element' => 'page',
+      'template' => 'asset-tooltip',
+    ) + $base,
+    'asset_wrapper' => array(
+      'render element' => 'element',
+      'template' => 'asset-wrapper',
+      'file' => 'theme.inc',
+    ) + $base,
+    'asset_editor_wrapper' => array(
+      'render element' => 'element',
+      'template' => 'asset-editor-wrapper',
+    ) + $base,
+  );
+}
+
+/**
+ * Implements hook_entity_property_info_alter().
+ */
+function asset_entity_property_info_alter(&$info) {
+  $properties = &$info['asset']['properties'];
+
+  $properties['created'] = array(
+    'label' => t('Date created'),
+    'type' => 'date',
+    'description' => t('The date the asset was created.'),
+    'setter callback' => 'entity_property_verbatim_set',
+    'setter permission' => 'administer assets',
+    'schema field' => 'created',
+  );
+
+  $properties['changed'] = array(
+    'label' => t('Date changed'),
+    'type' => 'date',
+    'schema field' => 'changed',
+    'description' => t('The date the asset was most recently updated.'),
+  );
+
+  $properties['uid'] = array(
+    'label' => t('Author'),
+    'type' => 'user',
+    'description' => t('The author of the asset.'),
+    'setter callback' => 'entity_property_verbatim_set',
+    'setter permission' => 'administer assets',
+    'required' => TRUE,
+    'schema field' => 'uid',
+  );
+
+  $properties['type'] = array(
+    'label' => t('Asset type'),
+    'description' => t('The type of the asset.'),
+    'setter callback' => 'entity_property_verbatim_set',
+    'type' => 'asset_type',
+    'required' => TRUE,
+    'schema field' => 'type',
+    'options list' => 'asset_type_get_names',
+  );
+
+  $properties = &$info['asset_type']['properties'];
+  $properties['id'] = array(
+    'label' => t('Asset type ID'),
+    'description' => t('The unique ID of the asset type.'),
+    'type' => 'integer',
+    'schema field' => 'id',
+  );
+
+  $properties['name'] = array(
+    'label' => t('Name'),
+    'description' => t('The name of the asset type.'),
+    'setter callback' => 'entity_property_verbatim_set',
+    'required' => TRUE,
+    'schema field' => 'name',
+  );
+
+  $properties['machine_name'] = array(
+    'label' => t('Machine name'),
+    'type' => 'token',
+    'description' => t('The machine name of the asset type.'),
+    'setter callback' => 'entity_property_verbatim_set',
+    'required' => TRUE,
+    'schema field' => 'type',
+  );
+
+  $properties['description'] = array(
+    'label' => t('Description'),
+    'description' => t('The optional description of the asset type.'),
+    'setter callback' => 'entity_property_verbatim_set',
+    'sanitize' => 'filter_xss',
+    'schema field' => 'description',
+  );
+
+  return $info;
+}
+
+/**
+ * Implements hook_references_dialog_entity_admin_paths().
+ */
+function asset_references_dialog_entity_admin_paths() {
+  return array(
+    'asset' => array(
+      'add' => 'admin/content/assets/add/[bundle-sanitized]',
+      'edit' => 'admin/content/assets/manage/[entity_id]',
+    ),
+  );
+}
+
+/**
+ * Implements hook_views_api().
+ */
+function asset_views_api() {
+  return array(
+    'api' => '3.0',
+    'path' => ASSET_MODULE_PATH . '/views',
+  );
+}
+
+/**
+ * Helper function to get front theme.
+ */
+function asset_get_frontend_theme() {
+  return variable_get('theme_default', 'bartik');
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function asset_form_views_exposed_form_alter(&$form, &$form_state) {
+  // Fix redirection for views exposed form.
+  // In case that views_exposed_form form builder gets only view path, we should rebuild $form_state['redirect'].
+  // We should pass query render = popup, to process suppression for unwanted items.
+  // @see views_exposed_form().
+  $destination = drupal_get_destination();
+
+  if (asset_is_popup()) {
+    $destination = drupal_parse_url($destination['destination']);
+    $form_state['redirect'] = array(
+      'path' => $destination['path'],
+      'options' => array(
+        'query' => array(
+          'render' => $_GET['render'],
+        ),
+        'fragment' => $destination['fragment'],
+      ),
+    );
+    $form['render'] = array(
+      '#type' => 'hidden',
+      '#value' => 'popup',
+    );
+  }
+  else {
+    $form['#action'] = '/' . $destination['destination'];
+  }
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function asset_form_field_ui_display_overview_form_alter(&$form, &$form_state) {
+  if ('asset' == $form['#entity_type']) {
+    if ($form['#view_mode'] == 'default') {
+      $bundle = $form['#bundle'];
+      $form['wysiwyg_modes'] = array(
+        '#type' => 'fieldset',
+        '#title' => t('Wysiwyg modes'),
+        '#collapsible' => TRUE,
+        '#collapsed' => TRUE,
+      );
+
+      $options = array();
+      $entity_info = entity_get_info('asset');
+      $view_modes = $entity_info['view modes'];
+
+      unset($view_modes['tooltip']);
+
+      $default = _assets_get_wysiwyg_modes($bundle);
+      $default_wysiwyg_default = _assets_get_default_wysiwyg_mode($bundle);
+
+      foreach ($view_modes as $view_mode_name => $view_mode_info) {
+        $options[$view_mode_name] = $view_mode_info['label'];
+      }
+
+      $form['wysiwyg_modes']['view_modes_wysiwyg'] = array(
+        '#type' => 'checkboxes',
+        '#title' => t('Use following view modes in the wysiwyg'),
+        '#options' => $options,
+        '#default_value' => $default,
+      );
+
+      $form['wysiwyg_modes']['default_view_mode_wysiwyg'] = array(
+        '#type' => 'radios',
+        '#title' => t('Use following view mode as default in the wysiwyg'),
+        '#options' => $options,
+        '#default_value' => $default_wysiwyg_default,
+      );
+
+      $form['#submit'][] = 'assets_field_ui_display_overview_form_submit';
+    }
+  }
+}
+
+/**
+ * Custom submit handler.
+ */
+function assets_field_ui_display_overview_form_submit($form, &$form_state) {
+  $bundle = $form['#bundle'];
+  $view_modes_wysiwyg = array_filter($form_state['values']['view_modes_wysiwyg']);
+  assets_set_wysiwyg_modes($bundle, $view_modes_wysiwyg);
+  $default_view_mode_wysiwyg = $form_state['values']['default_view_mode_wysiwyg'];
+  assets_set_default_wysiwyg_mode($bundle, $default_view_mode_wysiwyg);
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function asset_form_ckeditor_admin_profile_form_alter(&$form, &$form_state) {
+  $form['output']['enter_mode']['#default_value'] = 'br';
+  $form['#submit'][] = 'asset_ckeditor_admin_profile_form_submit';
+}
+
+/**
+ * Custom submit handler.
+ */
+function asset_ckeditor_admin_profile_form_submit($form, &$form_state) {
+  if (!empty($form_state['values']['loadPlugins']['asset']) && ($form_state['values']['enter_mode'] != 'br')) {
+    $form_state['values']['enter_mode'] = 'br';
+  }
+}
+
+/**
+ * Helper function to get wysiwyg modes.
+ */
+function _assets_get_wysiwyg_modes($bundle) {
+  $settings = variable_get('assets_wysiwyg_modes', array());
+  return isset($settings[$bundle]) ? $settings[$bundle] : array();
+}
+
+/**
+ * Helper function to set wysiwyg modes.
+ */
+function assets_set_wysiwyg_modes($bundle, $settings) {
+  $current_settings = variable_get('assets_wysiwyg_modes', array());
+  $current_settings[$bundle] = $settings;
+  variable_set('assets_wysiwyg_modes', $current_settings);
+}
+
+/**
+ * Get default wysiwyg mode by bundle.
+ */
+function _assets_get_default_wysiwyg_mode($bundle) {
+  $settings = variable_get('assets_default_wysiwyg_modes', array());
+  return isset($settings[$bundle]) ? $settings[$bundle] : array();
+}
+
+/**
+ * Set default wysiwyg mode by bundle.
+ */
+function assets_set_default_wysiwyg_mode($bundle, $settings) {
+  $current_settings = variable_get('assets_default_wysiwyg_modes', array());
+  $current_settings[$bundle] = $settings;
+  variable_set('assets_default_wysiwyg_modes', $current_settings);
+}
+
+/**
+ * Title callback function.
+ */
+function _assets_form_page_title($type) {
+  if ($type = substr($type, 6)) {
+    $type_obj = assets_get_types($type);
+
+    if (!empty($type_obj->name)) {
+      return t('Add @asset_type_name', array('@asset_type_name' => $type_obj->name));
+    }
+  }
+
+  return t('Add asset');
+}
+
+/**
+ * Helper to get asset form action title.
+ */
+function _assets_form_action_title($op, $entity_type) {
+  if ($info = entity_get_info($entity_type)) {
+    switch ($op) {
+      case 'add':
+        return t('Add @label', array('@label' => $info['label']));
+
+      case 'import':
+        return t('Import @label', array('@label' => $info['label']));
+    }
+  }
+}
+
+/**
+ * Implements hook_element_info_alter().
+ */
+function asset_element_info_alter(&$types) {
+  $types['text_format']['#pre_render'][] = 'assets_pre_render_text_format';
+}
+
+/**
+ * This function adds a settings required by assets
+ *
+ * @param $element
+ *   A fully populated form element to add the editor to.
+ * @return array
+ *   The same $element.
+ */
+function assets_pre_render_text_format($element) {
+  static $init = FALSE;
+
+  if (isset($element['#format']) && ($init === FALSE)) {
+    $init = TRUE;
+    $asset_types = assets_get_types();
+    $entity_info = entity_get_info('asset');
+    $view_modes = $entity_info['view modes'];
+    $config = array();
+
+    foreach ($asset_types as $type) {
+      $asset_type_params = array();
+      $wysiwyg_modes = _assets_get_wysiwyg_modes($type->type);
+
+      $modes = array();
+      foreach ($wysiwyg_modes as $view_mode_name) {
+        $modes[$view_mode_name] = $view_modes[$view_mode_name]['label'];
+      }
+
+      $asset_type_params['name'] = $type->name;
+      $asset_type_params['icon'] = $type->icon;
+      $asset_type_params['fields'] = _assets_get_overridable_fields($type->type);
+      $asset_type_params['modes'] = $modes;
+      $config[$type->type] = $asset_type_params;
+    }
+
+    drupal_add_js(array('ckeditor' => array('plugins' => array('asset' => $config))), 'setting');
+  }
+
+  return $element;
+}
+
+/**
+ * Implements hook_asset_presave().
+ */
+function asset_asset_presave($asset) {
+  $asset->changed = REQUEST_TIME;
+  return $asset;
+}

@@ -1,0 +1,264 @@
+<?php
+/**
+ * @file
+ * Emvideo core module.
+ */
+
+/**
+ * Implements hook_field_info().
+ */
+function emvideo_field_info() {
+  return array(
+    'emvideo' => array(
+      'label' => t('Embedded Video'),
+      'description' => t('Provides an Embedded Video field.'),
+      'default_widget' => 'emvideo_text',
+      'default_formatter' => 'emvideo_video',
+    ),
+  );
+}
+
+/**
+ * Implements hook_field_presave().
+ */
+function emvideo_field_presave($entity_type, $entity, $field, $instance, $langcode, &$items) {
+  if ($field['type'] == 'emvideo') {
+    foreach ($items as $delta => $item) {
+      if (isset($item['url']) && !empty($item['url'])) {
+        $url = trim($item['url']);
+
+        foreach (module_implements('emvideo_parse') as $module) {
+          $res = module_invoke($module, 'emvideo_parse', $url);
+
+          if (is_array($res)) {
+            $items[$delta] = array_merge($items[$delta], $res);
+            break;
+          }
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Implements hook_field_is_empty().
+ */
+function emvideo_field_is_empty($item, $field) {
+  return empty($item['url']);
+}
+
+/**
+ * Implements hook_field_formatter_info().
+ */
+function emvideo_field_formatter_info() {
+  return array(
+    'emvideo_video' => array(
+      'label' => t('Embedded video'),
+      'field types' => array('emvideo'),
+      'settings' => array('width' => 640, 'height' => 360),
+    ),
+    'emvideo_snapshot' => array(
+      'label' => t('Video snapshot'),
+      'field types' => array('emvideo'),
+      'settings' => array('width' => 320, 'class' => ''),
+    ),
+  );
+}
+
+/**
+ * Implements hook_field_formatter_settings_form().
+ */
+function emvideo_field_formatter_settings_form($field, $instance, $view_mode, $form, &$form_state) {
+  $display = $instance['display'][$view_mode];
+  $settings = $display['settings'];
+
+  switch ($display['type']) {
+    case 'emvideo_video':
+      $element['width'] = array(
+        '#title' => t('Width'),
+        '#type' => 'textfield',
+        '#size' => 10,
+        '#default_value' => $settings['width'],
+        '#element_validate' => array('_element_validate_integer_positive'),
+        '#required' => TRUE,
+      );
+
+      $element['height'] = array(
+        '#title' => t('Height'),
+        '#type' => 'textfield',
+        '#size' => 10,
+        '#default_value' => $settings['height'],
+        '#element_validate' => array('_element_validate_integer_positive'),
+        '#required' => TRUE,
+      );
+
+      return $element;
+      break;
+
+    case 'emvideo_snapshot':
+      $element['width'] = array(
+        '#title' => t('Width'),
+        '#type' => 'textfield',
+        '#size' => 10,
+        '#default_value' => $settings['width'],
+        '#element_validate' => array('_element_validate_integer_positive'),
+        '#required' => TRUE,
+      );
+
+      $element['class'] = array(
+        '#title' => t('CSS class'),
+        '#type' => 'textfield',
+        '#size' => 10,
+        '#default_value' => $settings['class'],
+      );
+
+      return $element;
+      break;
+  }
+}
+
+/**
+ * Implements hook_field_formatter_settings_summary().
+ */
+function emvideo_field_formatter_settings_summary($field, $instance, $view_mode) {
+  $display = $instance['display'][$view_mode];
+  $settings = $display['settings'];
+  $output = '';
+
+  switch ($display['type']) {
+    case 'emvideo_video':
+      $output = t('Width') . ': ' . $settings['width'] . 'px<br/>';
+      $output .= t('Height') . ': ' . $settings['height'] . 'px';
+      break;
+
+    case 'emvideo_snapshot':
+      $output = t('Width') . ': ' . $settings['width'] . 'px<br/>';
+
+      if (!empty($settings['class'])) {
+        $output .= t('CSS class') . ': ' . $settings['class'] . '<br/>';
+      }
+      break;
+  }
+
+  return $output;
+}
+
+/**
+ * Implements hook_field_formatter_view().
+ */
+function emvideo_field_formatter_view($entity_type, $entity, $field, $instance, $langcode, $items, $display) {
+  $element = array();
+
+  switch ($display['type']) {
+    case 'emvideo_video':
+      foreach ($items as $delta => $item) {
+
+        $output = '';
+        foreach (module_implements('emvideo_emcode') as $module) {
+          $params = array(
+            'source'   => $item['source'],
+            'provider' => $item['provider'],
+            'height'   => $display['settings']['height'],
+            'width'    => $display['settings']['width'],
+          );
+
+          $output = module_invoke($module, 'emvideo_emcode', $params);
+
+          if ($output !== FALSE) {
+            $element[$delta]['#markup'] = $output;
+            break;
+            continue 2;
+          }
+        }
+
+        if (!empty($item['source']) && empty($output)) {
+          $source = $item['source'];
+          $output .= '<object type="application/x-shockwave-flash" ';
+          $output .= 'width="' . $display['settings']['width'] . '" height="' . $display['settings']['height'] . '" data="' . $source . '">' . "\n";
+
+          $defaults = array(
+            'movie' => $source,
+            'wmode' => 'transparent',
+            'allowFullScreen' => 'true',
+          );
+
+          foreach ($defaults as $name => $value) {
+            $output .= '  <param name="' . $name . '" value="' . $value . '" />' . "\n";
+          }
+
+          $output .= '</object>' . "\n";
+          $element[$delta]['#markup'] = $output;
+        }
+        elseif (empty($output)) {
+          $element[$delta]['#markup'] = $item['url'];
+        }
+      }
+      break;
+
+    case 'emvideo_snapshot':
+      foreach ($items as $delta => $item) {
+        if (isset($item['snapshot'])) {
+          $attributes = array(
+            'src' => $item['snapshot'],
+            'width' => $display['settings']['width'],
+          );
+
+          if (!empty($display['settings']['class'])) {
+            $attributes['class'] = array($display['settings']['class']);
+          }
+
+          $element[$delta]['#markup'] = '<img' . drupal_attributes($attributes) . ' />';
+        }
+        else {
+          $element[$delta]['#markup'] = '';
+        }
+      }
+      break;
+  }
+
+  return $element;
+}
+
+/**
+ * Implements hook_field_widget_info().
+ */
+function emvideo_field_widget_info() {
+  return array(
+    'emvideo_text' => array(
+      'label' => t('Embedded Video Field'),
+      'field types' => array('emvideo'),
+    ),
+  );
+}
+
+/**
+ * Implements hook_field_widget_form().
+ */
+function emvideo_field_widget_form(&$form, &$form_state, $field, $instance, $langcode, $items, $delta, $element) {
+  $value = isset($items[$delta]['url']) ? $items[$delta]['url'] : '';
+  $element += array(
+    '#delta' => $delta,
+  );
+  $element['url'] = array();
+
+  if ($instance['widget']['type'] == 'emvideo_text') {
+    $element['url'] += array(
+      '#type' => 'textarea',
+      '#title' => check_plain($element['#title']),
+      '#default_value' => $value,
+      '#format' => 1,
+      '#required' => $element['#required'],
+    );
+  }
+
+  return $element;
+}
+
+/**
+ * Implements hook_field_widget_error().
+ */
+function emvideo_field_widget_error($element, $error, $form, &$form_state) {
+  if ($error['error'] == 'emvideo_invalid') {
+    form_error($element, $error['message']);
+  }
+}

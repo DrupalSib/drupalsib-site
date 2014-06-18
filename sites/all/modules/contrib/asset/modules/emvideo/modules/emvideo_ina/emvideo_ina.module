@@ -1,0 +1,115 @@
+<?php
+/**
+ * @file
+ * Emvideo ina module.
+ */
+
+/**
+ * Implements hook_emvideo_parse().
+ */
+function emvideo_ina_emvideo_parse($url) {
+  $matches = array();
+  $id_notice = $id_user = $hashcode = NULL;
+
+  if (preg_match('@/video/ticket/([a-zA-Z0-9\/]*)@', $url, $matches)) {
+    $embed = explode('/', $matches[1]);
+    $id_notice = $embed[0];
+    $id_user   = $embed[1];
+    $hashcode  = $embed[2];
+  }
+  elseif (preg_match('@http://www.ina.fr(?:.*?)/video/([^/]*)@', $url, $matches)) {
+    $id_notice = $matches[1];
+    $id_user = variable_get('emvideo_ina_id_user');
+    $hashcode = variable_get('emvideo_ina_hashcode');
+  }
+
+  if ($id_notice && $id_user && $hashcode) {
+    return array(
+      'source' => "id_notice/$id_notice/id_utilisateur/$id_user/hash/$hashcode",
+      'provider' => 'ina',
+      'snapshot' => "http://www.ina.fr/images_v2/320x240/$id_notice.jpeg",
+    );
+  }
+
+  return FALSE;
+}
+
+/**
+ * Implements hook_emvideo_emcode().
+ */
+function emvideo_ina_emvideo_emcode($params) {
+  $output = '';
+
+  if (isset($params['provider']) && $params['provider'] == 'ina') {
+    $width  = $params['width'];
+    $height = $params['height'];
+    $embed = explode('/', $params['source']);
+    $id_notice = $embed[1];
+    $id_user   = $embed[3];
+    $hashcode  = $embed[5];
+
+    // New embed method.
+    $output = '<object classid="clsid:D27CDB6E-AE6D-11cf-96B8-444553540000"
+      id="Visionneuse" width="' . $width . '" height="' . $height . '"
+      codebase="http://fpdownload.macromedia.com/get/flashplayer/current/swflash.cab">
+      <param name="movie" value="http://www.ina.fr/video/ticket/' . $id_notice . '/' . $id_user . '/' . $hashcode . '" />
+      <param name="pluginspage" value="http://www.macromedia.com/go/getflashplayer">
+      <param name="align" value="middle">
+      <param name="quality" value="high" />
+      <param name="scale" value="showall">
+      <param name="wmode" value="transparent">
+      <param name="menu" value="true">
+      <param name="devicefont" value="false">
+      <param name="bgcolor" value="#FFFFFF" />
+      <param name="allowScriptAccess" value="always" />
+      <param name="allowFullScreen" value="true" />
+      <param name="flashvars" value="config=http://www.ina.fr/player/configurationEmbed&amp;type_media=video">
+      <embed src="http://www.ina.fr/video/ticket/' . $id_notice . '/' . $id_user . '/' . $hashcode . '" quality="high" bgcolor="#FFFFFF"
+          width="' . $width . '" height="' . $height . '" name="Viewer" align="middle"
+          quality="high"
+          wmode="transparent"
+          allowScriptAccess="always"
+          allowFullScreen="true"
+          type="application/x-shockwave-flash"
+          pluginspage="http://www.adobe.com/go/getflashplayer"
+          flashvars="config=http://www.ina.fr/player/configurationEmbed&amp;type_media=video">
+      </embed>
+    </object>';
+  }
+
+  return $output;
+}
+
+/**
+ * Implements hook_menu().
+ */
+function emvideo_ina_menu() {
+  return array(
+    'admin/config/media/emvideo_ina' => array(
+      'title' => 'Embedded video INA.fr',
+      'description' => 'INA.fr video embedding settings',
+      'page callback' => 'drupal_get_form',
+      'page arguments' => array('emvideo_ina_settings_form'),
+      'access arguments' => array('administer site configuration'),
+    ),
+  );
+}
+
+/**
+ * Implements hook_field_settings_form().
+ */
+function emvideo_ina_settings_form($form, &$form_state) {
+  $form['emvideo_ina_id_user'] = array(
+    '#type' => 'textfield',
+    '#title' => t('INA User ID'),
+    '#default_value' => variable_get('emvideo_ina_id_user'),
+  );
+
+  $form['emvideo_ina_hashcode'] = array(
+    '#type' => 'textfield',
+    '#title' => t('INA Hash code'),
+    '#default_value' => variable_get('emvideo_ina_hashcode'),
+  );
+
+  return system_settings_form($form);
+}

@@ -1,0 +1,597 @@
+<?php
+/**
+ * @file
+ * The core functionality for social network sites.
+ */
+
+// Base.
+define('DSSOCIAL_CORE_MODULE_PATH', drupal_get_path('module', 'dssocial_core'));
+define('DSSOCIAL_CORE_THEME_PATH', drupal_get_path('theme', 'dssocial'));
+define('DSSOCIAL_CORE_IMAGE_PATH', DSSOCIAL_CORE_THEME_PATH . '/images');
+
+// Comments.
+define('DSSOCIAL_CORE_COMMENT_MAX_LETTERS', 1000);
+define('DSSOCIAL_CORE_COMMENT_REPLY_COUNT', 10);
+
+// JS USERAPI.
+define('DS_SITE_JS_USERAPI', 'http://userapi.com/js/api/openapi.js');
+
+// VK API KEY.
+define('DS_SITE_VK_API_KEY', 26642114);
+
+// CTools block tags and social link.
+define('DSSSOCIAL_TAGS_AND_SOCIAL_LINKS_TAGS', 0);
+define('DSSSOCIAL_TAGS_AND_SOCIAL_LINKS_AUTHOR_INFORMACHION', 1);
+define('DSSSOCIAL_TAGS_AND_SOCIAL_LINKS_BIG', 1);
+define('DSSSOCIAL_TAGS_AND_SOCIAL_LINKS_SMALL', 0);
+
+// Rate module.
+define('DSSSOCIAL_RATE_WIDGET_ID', 2);
+
+/**
+ * Implements of hook_menu_alter().
+ * Associative array of menu router definitions returned from hook_menu().
+ */
+function dssocial_core_menu_alter(&$items) {
+  $items['node/%node/edit']['access callback'] = 'dssocial_core_author_article_access';
+  $items['node']['access callback'] = FALSE;
+}
+
+/**
+ * Access collback.
+ */
+function dssocial_core_author_article_access($op, $node, $account = NULL) {
+  global $user;
+  $account = $user;
+
+  if (($node->type == 'article') && ((($node->uid == $account->uid) || ($account->uid == $node->field_author[LANGUAGE_NONE][0]['target_id']) || $account->uid == 1) || user_access('dssocial edit any node'))) {
+    return TRUE;
+  }
+  elseif (($node->type != 'article') && ((($node->uid == $account->uid) || ($account->uid == 1))  || user_access('dssocial edit any node'))) {
+    return TRUE;
+  }
+
+  return FALSE;
+}
+
+/**
+ * Implements hook_ctools_plugin_directory().
+ */
+function dssocial_core_ctools_plugin_directory($module, $plugin) {
+  if ($module == 'ctools' || $module == 'panels') {
+    return 'plugins/' . $plugin;
+  }
+}
+
+/**
+ * Implements hook_entity_info_alter().
+ */
+function dssocial_core_entity_info_alter(&$entity_info) {
+  $build_modes = array(
+    'dossier' => t('Dossier'),
+  );
+
+  foreach ($build_modes as $key => $value) {
+    $view_modes[$key] = array(
+      'label'           => $value,
+      'custom settings' => TRUE,
+    );
+  }
+  $entity_info['node']['view modes'] += $view_modes;
+}
+
+/**
+ * Implements hook_theme().
+ */
+function dssocial_core_theme() {
+  $base = array(
+    'file' => 'theme.inc',
+    'path' => DSSOCIAL_CORE_MODULE_PATH . '/theme',
+  );
+
+  $theme = array(
+    'dssocial_core_content_category_name' => $base + array(
+      'variables' => array('node' => NULL),
+    ),
+    'dssocial_core_content_tags' => $base + array(
+      'variables' => array('node' => NULL),
+    ),
+    'comment_form' => array(
+      'template' => 'comment-form',
+      'render element' => 'form',
+    ),
+    'dssocial_social_links' => array(
+      'template' => 'dssocial-social-links',
+    ),
+    'dssocial_tags' => array(
+      'template' => 'dssocial-tags',
+    ),
+    'breadcrumb' => array(
+      'template' => 'breadcrumb',
+    ),
+    'author' => array(
+      'template' => 'author',
+    ),
+    'poll_vote' => array(
+      'template' => 'poll-vote',
+      'render element' => 'form',
+    ),
+    'poll_results' => array(
+      'template' => 'poll-results',
+      'variables' => array(
+        'raw_title' => NULL,
+        'results' => NULL,
+        'votes' => NULL,
+        'raw_links' => NULL,
+        'block' => NULL,
+        'nid' => NULL,
+        'vote' => NULL,
+      ),
+    ),
+    'poll_bar' => array(
+      'template' => 'poll-bar',
+      'variables' => array('title' => NULL, 'votes' => NULL, 'total_votes' => NULL, 'vote' => NULL, 'block' => NULL),
+    ),
+    'ds_rate_button' => array(
+      'template' => 'ds-rate-button',
+      'variables' => array('text' => NULL, 'href' => NULL, 'class' => NULL),
+      'path' => DSSOCIAL_CORE_THEME_PATH . '/templates',
+    ),
+  );
+
+  return $theme;
+}
+
+/**
+ * Get terms by field.
+ *
+ * @param array $field
+ *   field with taxonomy
+ */
+function dssocial_core_field_get_term($field) {
+  $tags = array();
+  foreach ($field[LANGUAGE_NONE] as $tag) {
+    if (empty($tag['entity'])) {
+      $tag['entity'] = taxonomy_term_load($tag['target_id']);
+    }
+    $tags[] = l($tag['entity']->name, 'taxonomy/term/' . $tag['entity']->tid . '/tag/popularity');
+  }
+  return $tags;
+}
+
+/**
+ * Date format wrapper.
+ *
+ * @param int $timestamp
+ *   field with date
+ * @param object $format
+ *   format for date
+ */
+function dssocial_core_date_format($timestamp, $format = 'short') {
+  return format_date($timestamp, $format);
+}
+
+/**
+ * Wrapper for views_trim_text() function.
+ * Fork of views_trim_text.
+ *
+ * @param string $alter
+ *   - max_length: Maximum length of the string, the rest gets truncated.
+ *   - word_boundary: Trim only on a word boundary.
+ *   - ellipsis: Trim only on a word boundary.
+ *   - html: Take sure that the html is correct.
+ *   - strip_tags : strip tags before length cutting.
+ * @param array $value
+ *   fields
+ *
+ * @return string
+ *   Trimmed string.
+ */
+function dssocial_core_trim_text($alter, $value) {
+  if (!empty($alter['strip_tags'])) {
+    $value = strip_tags($value);
+  }
+
+  if (drupal_strlen($value) > $alter['max_length']) {
+    $cutted_value = $value = drupal_substr($value, 0, $alter['max_length']);
+    // TODO: replace this with cleanstring of ctools.
+    if (!empty($alter['word_boundary'])) {
+      $regex = "(.*)\b.+";
+      if (function_exists('mb_ereg')) {
+        mb_regex_encoding('UTF-8');
+        $matches = NULL;
+        $found = mb_ereg($regex, $value, $matches);
+      }
+      else {
+        $found = preg_match("/$regex/us", $value, $matches);
+      }
+      if ($found) {
+        $value = $matches[1];
+      }
+    }
+    // Avoid results like '...'.
+    if (empty($value)) {
+      $value = $cutted_value;
+    }
+
+    // Remove scraps of HTML entities from the end of a strings.
+    $value = rtrim(preg_replace('/(?:<(?!.+>)|&(?!.+;)).*$/us', '', $value));
+
+    if (!empty($alter['ellipsis'])) {
+      $value .= '...';
+    }
+  }
+  if (!empty($alter['html'])) {
+    $value = _filter_htmlcorrector($value);
+  }
+
+  return $value;
+}
+
+
+/**
+ * Helper for node title cutting.
+ */
+function dssocial_core_trim_title($text, $length = 100) {
+  $alter = array(
+    'max_length' => $length,
+    'word_boundary' => TRUE,
+    'ellipsis' => TRUE,
+    'strip_tags' => TRUE,
+  );
+  return dssocial_core_trim_text($alter, $text);
+}
+
+/**
+ * Implements hook_field_formatter_info().
+ */
+function dssocial_core_field_formatter_info() {
+  return array(
+    'dssocial_trimmed' => array(
+      'label' => t('DS Trimmed'),
+      'field types' => array('text', 'text_long', 'text_with_summary'),
+      'settings' => array('trim_length' => 250),
+    ),
+  );
+}
+
+/**
+ * Implements hook_field_formatter_view().
+ */
+function dssocial_core_field_formatter_view($entity_type, $entity, $field, $instance, $langcode, $items, $display) {
+  $element = array();
+  switch ($display['type']) {
+    case 'dssocial_trimmed':
+      if (!empty($items[0]['value'])) {
+        $alter = array(
+          'max_length' => $display['settings']['trim_length'],
+          'word_boundary' => TRUE,
+          'ellipsis' => TRUE,
+          'strip_tags' => TRUE,
+        );
+        $element[0] = array(
+          '#markup' => dssocial_core_trim_text($alter, $items[0]['value']),
+        );
+      }
+      break;
+  }
+  return $element;
+}
+
+/**
+ * Implements hook_field_formatter_settings_summary().
+ */
+function dssocial_core_field_formatter_settings_summary($field, $instance, $view_mode) {
+  $display = $instance['display'][$view_mode];
+  $settings = $display['settings'];
+
+  $summary = '';
+
+  if ($display['type'] == 'dssocial_trimmed') {
+    $summary = t('Trim length') . ': ' . $settings['trim_length'];
+  }
+
+  return $summary;
+}
+
+/**
+ * Implements hook_field_formatter_settings_form().
+ */
+function dssocial_core_field_formatter_settings_form($field, $instance, $view_mode, $form, &$form_state) {
+  $display = $instance['display'][$view_mode];
+  $settings = $display['settings'];
+
+  $element = array();
+
+  if ($display['type'] == 'dssocial_trimmed') {
+    $element['trim_length'] = array(
+      '#title' => t('Trim length'),
+      '#type' => 'textfield',
+      '#size' => 10,
+      '#default_value' => $settings['trim_length'],
+      '#element_validate' => array('element_validate_integer_positive'),
+      '#required' => TRUE,
+    );
+  }
+
+  return $element;
+}
+
+/**
+ * Implements hook_variable_info().
+ */
+function dssocial_core_variable_info($options) {
+  $variables['dssocial_core_vk_api_id'] = array(
+    'type' => 'textfield',
+    'title' => t('Api Id for Vk like button'),
+    'default' => '',
+    'group' => 'dssocial_core_like_buttons',
+  );
+  $variables['dssocial_core_fb_api_id'] = array(
+    'type' => 'textfield',
+    'title' => t('Api Id for fb like button'),
+    'default' => '',
+    'group' => 'dssocial_core_like_buttons',
+  );
+
+  return $variables;
+}
+
+/**
+ * Implements hook_variable_group_info().
+ */
+function dssocial_core_variable_group_info() {
+  $groups['dssocial_core_like_buttons'] = array(
+    'title' => t('DSSocial like buttons'),
+    'description' => t('DSSocial like buttons'),
+    'access' => 'administer site configuration',
+  );
+
+  return $groups;
+}
+
+/**
+ * Implements hook_variable_type_info().
+ */
+function dssocial_core_variable_type_info() {
+  $type['text'] = array(
+    'title' => t('Text'),
+    'element' => array('#type' => 'textarea'),
+    'token' => TRUE,
+  );
+  $type['textfield'] = array(
+    'title' => t('Textfield'),
+    'element' => array('#type' => 'textfield'),
+    'token' => TRUE,
+  );
+  $type['checkbox'] = array(
+    'title' => t('Checkbox'),
+    'element' => array('#type' => 'checkbox'),
+    'token' => TRUE,
+  );
+
+  return $type;
+}
+
+/**
+ * Helper function to get certain context from incoming array of contexts.
+ */
+function dssocial_core_get_context_by_type($context, $type) {
+  if (is_array($context)) {
+    foreach ($context as $item) {
+      if (!is_array($item->type) && (!empty($item->type))) {
+        $item->type = array($item->type);
+      }
+      if (is_array($type)) {
+        return FALSE;
+      }
+      elseif (in_array($type, $item->type)) {
+        return $item;
+      }
+    }
+  }
+  return FALSE;
+}
+
+/**
+ * Implements hook_form_alter().
+ */
+function dssocial_core_form_alter(&$form, &$form_state, $form_id) {
+  global $user;
+
+  switch ($form_id) {
+    case 'comment_node_article_form':
+      $form['#validate'][] = 'dssocial_core_comment_node_article_form_validate';
+      break;
+
+    case 'article_node_form':
+      if (!user_access('dssocial writing on behalf of other')) {
+        $form['field_author'][LANGUAGE_NONE][0]['target_id']['#value'] = "$user->name ($user->uid)";
+        hide($form['field_author']);
+      }
+      $form['#validate'][] = 'dssocial_core_article_node_form_validate';
+      break;
+
+    case 'poll_view_voting':
+      $form['choice']['#default_value'] = 1;
+      break;
+
+    case 'user_profile_form':
+      if ($form['#user_category'] == 'main_profile') {
+        form_load_include($form_state, 'inc', 'user', 'user.pages');
+        $form_account = drupal_get_form('user_profile_form', $user, 'account');
+        $form['account']['mail'] = $form_account['account']['mail'];
+        $form['#submit'][] = 'dssocial_core_user_profile_form_submit';
+      }
+      break;
+
+    case 'search_form':
+      $form['#after_build'][] = 'search_form_advanced_after_build';
+      break;
+  }
+}
+
+/**
+ * After build for search form.
+ */
+function search_form_advanced_after_build(&$form, &$form_state) {
+  unset($form_state['complete form']['advanced']);
+}
+
+/**
+ * Validate article node form.
+ */
+function dssocial_core_article_node_form_validate(&$form, &$form_state) {
+    $values=&$form_state['values'];
+   
+    if ($values['field_media_primary'][LANGUAGE_NONE][0]['value'] == 'slideshow') {
+    if (empty($values['field_slideshow'][LANGUAGE_NONE][0]['target_id'])) {
+      form_set_error('field_slideshow', t('Slideshow field is required.'));
+    }
+  }
+    if ($values['field_media_primary'][LANGUAGE_NONE][0]['value'] == 'image')     {
+       if (empty($values['field_image'][LANGUAGE_NONE][0]['fid'])) {
+           form_set_error('field_image', t('Image field is required.'));
+       }
+    }
+    
+     if ($values['field_media_primary'][LANGUAGE_NONE][0]['value'] == 'video')     {
+       if (empty($values['field_video'][LANGUAGE_NONE][0]['fid'])) {
+           form_set_error('field_video', t('Video field is required.'));
+       }
+    }
+}
+
+/**
+ * Submit for user profile form.
+ */
+function dssocial_core_user_profile_form_submit(&$form, &$form_state) {
+  if (!empty($form_state['input']['mail'])) {
+    $form['#user']->mail = $form_state['input']['mail'];
+    user_save($form['#user']);
+  }
+}
+
+/**
+ * Validate for comment node article form.
+ */
+function dssocial_core_comment_node_article_form_validate(&$form, &$form_state) {
+  if (!empty($form_state['values']['comment_body'])) {
+    $comment = $form_state['values']['comment_body'][LANGUAGE_NONE][0]['value'];
+    $message = t('The number of characters in the text of comments exceeds the allowable limit of 1000 characters.');
+    if (drupal_strlen($comment) > DSSOCIAL_CORE_COMMENT_MAX_LETTERS) {
+      form_set_error($comment, t($message));
+    }
+  }
+}
+
+
+/**
+ * Insert vk like button.
+ */
+function dssocial_core_get_vk_like() {
+  // Api Id.
+  $vars['api_id_vk'] = variable_get('dssocial_core_vk_api_id', '');
+  static $state_vk = TRUE;
+  if ($state_vk == TRUE) {
+    drupal_add_js("http://userapi.com/js/api/openapi.js?49");
+    $state_vk = FALSE;
+    return "<script type='text/javascript'>VK.init({apiId: '{$vars['api_id_vk']}', onlyWidgets: true});</script><div id='vk_like'></div><script type='text/javascript'>VK.Widgets.Like('vk_like', {type: 'mini', height: 24});</script>";
+  }
+  return "<script type='text/javascript'>VK.init({apiId: '{$vars['api_id_vk']}', onlyWidgets: true});</script><div id='vk_like1'></div><script type='text/javascript'>VK.Widgets.Like('vk_like1', {type: 'mini', height: 24});</script>";
+}
+
+/**
+ * Insert fb like button.
+ */
+function dssocial_core_get_fb_like() {
+  // Api Id.
+  $vars['api_id_fb'] = variable_get('dssocial_core_fb_api_id', '');
+    return " <iframe src='//www.facebook.com/plugins/like.php?href=http://{$vars['api_id_fb']}&amp;send=false&amp;layout=button_count&amp;width=140&amp;show_faces=false&amp;action=like&amp;colorscheme=light&amp;font&amp;height=21' scrolling='no' frameborder='0' style='border:none; overflow:hidden; width:140px; height:21px;' allowTransparency='true'></iframe>";
+}
+
+/**
+ * Implements hook_permission().
+ */
+function dssocial_core_permission() {
+  return array(
+    'dssocial writing on behalf of other' => array(
+      'title' => t('Dssocial writing on behalf of other'),
+      'description' => t('dssocial writing on behalf of other'),
+    ),
+    'dssocial edit any node' => array(
+      'title' => t('Dssocial edit any node'),
+      'description' => t('dssocial edit any node'),
+    ),
+  );
+}
+
+/**
+ * Alters outbound URLs.
+ *
+ * @param string $path
+ *   The outbound path to alter, not adjusted for path aliases yet. It won't be
+ *   adjusted for path aliases until all modules are finished altering it, thus
+ *   being consistent with hook_url_inbound_alter(), which adjusts for all path
+ *   aliases before allowing modules to alter it. This may have been altered by
+ *   other modules before this one.
+ * @param array $options
+ *   A set of URL options for the URL so elements such as a fragment or a query
+ *   string can be added to the URL.
+ * @param string $original_path
+ *   The original path, before being altered by any modules.
+ *
+ * @see url()
+ */
+function dssocial_core_url_outbound_alter(&$path, &$options, $original_path) {
+  // Create user alias.
+  if (preg_match('!^user/([0-9]+)(/.*)?!', $path, $matches)) {
+    if (path_load($path) == NULL) {
+      if ($account = user_load($matches[1])) {
+        $matches += array(2 => '');
+        $user_name = str_replace(' ', '-', $account->name);
+        $path_alias = array(
+          'alias' => 'user/' . drupal_strtolower(transliteration_get($user_name)) . $matches[2],
+          'source' => $path,
+          'language' => LANGUAGE_NONE,
+        );
+        path_save($path_alias);
+      }
+    }
+  }
+  // Create taxonomy alias.
+  if (preg_match('!^taxonomy/term/([0-9]+)(/.*)?!', $path, $matches)) {
+    if (path_load($path) == NULL) {
+      if ($term = taxonomy_term_load($matches[1])) {
+        $matches += array(2 => '');
+        $term_name = str_replace(' ', '-', $term->name);
+        $path_alias = array(
+          'alias' => drupal_strtolower(transliteration_get($term_name)) . $matches[2],
+          'source' => $path,
+          'language' => LANGUAGE_NONE,
+        );
+        path_save($path_alias);
+      }
+    }
+  }
+}
+
+/**
+ * Prepare node for breadcrumb.
+ *
+ * @param $content object
+ *   Rendered node.
+ *
+ * @return string
+ *   Title for breadcrumb.
+ */
+function dssocial_core_fill_node_breadcrumb($content) {
+  if (!empty($content->field_poll_title)) {
+    $result = dssocial_core_trim_title(check_plain($content->field_poll_title[LANGUAGE_NONE][0]['value']), 50);
+  }
+  else {
+    $result = dssocial_core_trim_title(check_plain($content->title), 50);
+  }
+
+  return $result;
+}

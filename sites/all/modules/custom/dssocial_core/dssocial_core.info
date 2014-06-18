@@ -1,0 +1,4 @@
+name = DrupalSib social core
+description = The core functionality for social network sites.
+core = 7.x
+package = "drupalsib_social"

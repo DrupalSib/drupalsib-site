@@ -1,0 +1,37 @@
+<?php
+/**
+ * @file
+ * Emvideo dailymotion module.
+ */
+
+/**
+ * Implements hook_emvideo_parse().
+ */
+function emvideo_dailymotion_emvideo_parse($url) {
+  $matches = array();
+
+  if (preg_match('@dai\.ly/([^\?"\&]+)@i', $url, $matches)) {
+    $url = drupal_http_request($url)->redirect_url;
+  }
+
+  if (preg_match('@dailymotion\.com[\/embed]*\/video\/([a-z0-9\-_]+)@i', $url, $matches)) {
+    $ret = array(
+      'source' => "http://www.dailymotion.com/swf/$matches[1]",
+      'provider' => 'dailymotion',
+    );
+
+    $api_url = "https://api.dailymotion.com/video/$matches[1]?fields=thumbnail_url";
+    $data = @file($api_url);
+    if ($data) {
+      $data = json_decode(implode("\n", $data), TRUE);
+
+      if (is_array($data) && isset($data['thumbnail_url']) && !empty($data['thumbnail_url'])) {
+        $ret['snapshot'] = $data['thumbnail_url'];
+      }
+    }
+
+    return $ret;
+  }
+
+  return FALSE;
+}

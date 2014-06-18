@@ -1,0 +1,37 @@
+diff --git a/sites/all/modules/contrib/boost/boost.admin.inc b/sites/all/modules/contrib/boost/boost.admin.inc
+index 79b765a..fdbe412 100644
+--- a/sites/all/modules/contrib/boost/boost.admin.inc
++++ b/sites/all/modules/contrib/boost/boost.admin.inc
+@@ -21,8 +21,8 @@ function boost_admin_settings() {
+   // See http://api.drupal.org/api/function/block_admin_configure/7
+   $access = user_access('use PHP for settings');
+   $options = array(
+-    BLOCK_VISIBILITY_NOTLISTED => t('All pages except those listed'),
+-    BLOCK_VISIBILITY_LISTED => t('Only the listed pages'),
++    0 => t('All pages except those listed'),
++    1 => t('Only the listed pages'),
+   );
+   $description = t("Specify pages by using their paths. Enter one path per line. The '*' character is a wildcard. Example paths are %blog for the blog page and %blog-wildcard for every personal blog. %front is the front page.", array('%blog' => 'blog', '%blog-wildcard' => 'blog/*', '%front' => '<front>'));
+   if (module_exists('php') && $access) {
+@@ -37,7 +37,7 @@ function boost_admin_settings() {
+     '#type' => 'radios',
+     '#title' => t('Cache specific pages'),
+     '#options' => $options,
+-    '#default_value' => variable_get('boost_cacheability_option', BLOCK_VISIBILITY_NOTLISTED),
++    '#default_value' => variable_get('boost_cacheability_option', 0),
+   );
+   $form['cacheability']['boost_cacheability_pages'] = array(
+     '#type' => 'textarea',
+diff --git a/sites/all/modules/contrib/boost/boost.module b/sites/all/modules/contrib/boost/boost.module
+index 8a3de9f..6be50c5 100644
+--- a/sites/all/modules/contrib/boost/boost.module
++++ b/sites/all/modules/contrib/boost/boost.module
+@@ -493,7 +493,7 @@ function boost_is_cacheable($parts) {
+ 
+   // Match the user's cacheability settings against the path.
+   // See http://api.drupal.org/api/function/block_block_list_alter/7
+-  $visibility = variable_get('boost_cacheability_option', BLOCK_VISIBILITY_NOTLISTED);
++  $visibility = variable_get('boost_cacheability_option', 0);
+   $pages_setting = variable_get('boost_cacheability_pages', BOOST_CACHEABILITY_PAGES);
+   if ($pages_setting) {
+     // Convert path string to lowercase. This allows comparison of the same path

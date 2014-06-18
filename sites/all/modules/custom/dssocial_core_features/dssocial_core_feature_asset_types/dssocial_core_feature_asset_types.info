@@ -1,0 +1,15 @@
+name = dssocial_core_feature_asset_types
+description = Provide asset types
+core = 7.x
+package = Features
+version = 7.x-1.0
+project = dssocial_core_feature_asset_types
+dependencies[] = asset
+dependencies[] = entity
+dependencies[] = features
+dependencies[] = field_sql_storage
+dependencies[] = filefield_paths
+dependencies[] = image
+features[asset_type][] = image
+features[features_api][] = api:1
+features[field][] = asset-image-field_asset_image

@@ -1,0 +1,15 @@
+.assets-library-item-wrapper{
+  border: 1px solid lightGray;
+  padding: 4px;
+}
+
+.assets-library-item-wrapper .assets-item-button {
+  background-color: whiteSmoke;
+  border: 1px solid lightGray;
+  margin : 4px;
+}
+
+.assets-library-item-wrapper .entity-asset {
+  margin : 4px;
+  float: none;
+}

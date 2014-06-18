@@ -1,0 +1,10 @@
+name = dssocial_core_feature_vocabulary
+core = 7.x
+package = Features
+version = 7.x-1.0
+project = dssocial_core_feature_vocabulary
+dependencies[] = features
+dependencies[] = taxonomy
+features[features_api][] = api:1
+features[taxonomy][] = content_category
+features[taxonomy][] = facebook

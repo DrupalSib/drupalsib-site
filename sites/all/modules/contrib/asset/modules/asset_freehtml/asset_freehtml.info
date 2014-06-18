@@ -1,0 +1,14 @@
+name = Asset free HTML
+description = Provides a sample free HTML asset
+package = Media assets
+core = 7.x
+
+dependencies[] = asset
+dependencies[] = text
+
+; Information added by drupal.org packaging script on 2013-02-20
+version = "7.x-1.0-beta4"
+core = "7.x"
+project = "asset"
+datestamp = "1361391239"
+

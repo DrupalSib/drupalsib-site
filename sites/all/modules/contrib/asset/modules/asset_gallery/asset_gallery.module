@@ -1,0 +1,100 @@
+<?php
+/**
+ * @file
+ * Code for the Image gallery asset.
+ */
+
+define('ASSET_GALLERY_MODULE_PATH', drupal_get_path('module', 'asset_gallery'));
+
+/**
+ * Implements hook_default_asset_type().
+ */
+function asset_gallery_default_asset_type() {
+  $items = array();
+  $items['gallery'] = entity_import('asset_type', '{
+    "type" : "gallery",
+    "name" : "Gallery",
+    "icon" : "AddSlideshow.png",
+    "description" : "",
+    "help" : "",
+    "weight" : "2",
+    "locked" : "0",
+    "rdf_mapping" : []
+  }');
+  return $items;
+}
+
+/**
+ * Implements hook_views_api().
+ */
+function asset_gallery_views_api() {
+  return array(
+    'api' => '3.0',
+    'path' => ASSET_GALLERY_MODULE_PATH . '/views',
+  );
+}
+
+/**
+ * Implements hook_entity_info_alter().
+ */
+function asset_gallery_entity_info_alter(&$entity_info) {
+  if (isset($entity_info['asset'])) {
+    $entity_info['asset']['view modes']['gallery'] = array(
+      'label' => t('Gallery'),
+      'custom settings' => FALSE,
+    );
+  }
+}
+
+/**
+ * Implements hook_theme().
+ */
+function asset_gallery_theme() {
+  $base = array(
+    'path' => ASSET_GALLERY_MODULE_PATH . '/theme',
+  );
+
+  return array(
+    'asset__image__gallery' => array(
+      'template' => 'asset--image--gallery',
+    ) + $base,
+    'asset_wrapper__image__gallery' => array(
+      'template' => 'asset-wrapper--image--gallery',
+    ) + $base,
+    'asset__gallery__full' => array(
+      'template' => 'asset--gallery--full',
+    ) + $base,
+    'field__field_asset_image__image' => array(
+      'template' => 'field--field-asset-image--image',
+    ) + $base,
+    'field__field_asset_gallery_images__gallery' => array(
+      'template' => 'field--field-asset-gallery-images--gallery',
+    ) + $base,
+  );
+}
+
+/**
+ * Process variables for entity.tpl.php.
+ */
+function asset_gallery_preprocess_entity(&$variables) {
+  if ($variables['entity_type'] == 'asset') {
+    $asset = $variables['asset'];
+
+    if ($asset->type == 'image' && $variables['view_mode'] == 'gallery') {
+      $content = $variables['content'];
+      $item = $content['field_asset_image'][0];
+      $caption = '';
+
+      if (!empty($variables['field_asset_image_description'][0]['value'])) {
+        $caption .= check_plain($variables['field_asset_image_description'][0]['value']);
+      }
+
+      if (!empty($variables['field_asset_image_copyright'][0]['value'])) {
+        $caption .= '  © ' . check_plain($variables['field_asset_image_copyright'][0]['value']);
+      }
+
+      $variables['img_path'] = image_style_url($item['#image_style'], $item['#item']['uri']);
+      $variables['caption'] = $caption;
+    }
+  }
+}

@@ -1,0 +1,12 @@
+name = dssocial_feature_view_content_category
+description = View content_category
+core = 7.x
+package = Features
+php = 5.2.4
+version = 7.x-1.0
+project = dssocial_feature_view_content_category
+dependencies[] = ctools
+dependencies[] = views
+features[ctools][] = views:views_default:3.0
+features[features_api][] = api:1
+features[views_view][] = content_category_list

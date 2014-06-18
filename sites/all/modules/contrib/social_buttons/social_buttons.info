@@ -1,0 +1,10 @@
+name = Social Buttons
+description = Social Buttons Field.
+core = 7.x
+
+; Information added by drupal.org packaging script on 2012-04-25
+version = "7.x-1.0-beta2"
+core = "7.x"
+project = "social_buttons"
+datestamp = "1335366691"
+

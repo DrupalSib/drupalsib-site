@@ -1,0 +1,109 @@
+<?php
+
+
+/**
+ * Implementation of hook_schema().
+ */
+function views_fb_like_schema() {
+  $schema = array();
+
+  $schema['views_fb_like'] = array(
+    'description' => t('Stores aggregated counts of nodes from FQL.'),
+    'fields' => array(
+      'nid' => array(
+        'description' => t('The node id.'),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'share_count' => array(
+        'description' => t('The number of times users have shared the page on Facebook.'),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'like_count' => array(
+        'description' => t('The number of times Facebook users have "Liked" the page.'),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'comment_count' => array(
+        'description' => t('The number of comments users have made on the shared story.'),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'total_count' => array(
+        'description' => t('The total number of times the URL has been shared, liked, or commented on.'),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'last_updated' => array(
+        'description' => t('The last updated timestamp.'),
+        'type' => 'int',
+        'not null' => TRUE,
+      ),
+    ),
+    'primary key' => array('nid'),
+    'indexes' => array(
+      'last_updated' => array('last_updated'),
+    ),
+  );
+
+
+  return $schema;
+}
+
+/**
+ * Implementation of hook_update_N().
+ *
+ * Adds new fields for the additional counts.
+ */
+function views_fb_like_update_6100() {
+  $ret = array();
+
+  // Change the name of the count field to like_count.
+  db_change_field($ret, 'views_fb_like', 'count', 'like_count', array(
+        'description' => t('The number of times Facebook users have "Liked" the page.'),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ));
+
+  // Add the new count fields.
+  $fields = array(
+    'share_count' => array(
+      'description' => t('The number of times users have shared the page on Facebook.'),
+      'type' => 'int',
+      'unsigned' => TRUE,
+      'not null' => TRUE,
+      'default' => 0,
+    ),
+    'comment_count' => array(
+      'description' => t('The number of comments users have made on the shared story.'),
+      'type' => 'int',
+      'unsigned' => TRUE,
+      'not null' => TRUE,
+      'default' => 0,
+    ),
+    'total_count' => array(
+      'description' => t('The total number of times the URL has been shared, liked, or commented on.'),
+      'type' => 'int',
+      'unsigned' => TRUE,
+      'not null' => TRUE,
+      'default' => 0,
+    ),
+  );
+  foreach ($fields as $name => $spec) {
+    db_add_field($ret, 'views_fb_like', $name, $spec);
+  }
+
+  return $ret;
+}

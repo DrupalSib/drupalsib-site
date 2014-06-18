@@ -1,0 +1,174 @@
+<?php
+/**
+ * @file
+ * Install, update and uninstall functions for the assets module.
+ */
+
+/**
+ * Implements hook_schema().
+ */
+function asset_schema() {
+  $schema['asset'] = array(
+    'description' => 'Stores assets.',
+    'fields' => array(
+      'aid' => array(
+        'description' => 'Primary Key: Unique asset item ID.',
+        'type' => 'serial',
+        'not null' => TRUE,
+      ),
+      'uid' => array(
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => FALSE,
+        'default' => NULL,
+        'description' => "The {users}.uid of the associated user.",
+      ),
+      'type' => array(
+        'description' => 'The {asset_type}.type of the asset.',
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'title' => array(
+        'description' => 'The title of the asset.',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'created' => array(
+        'description' => 'The Unix timestamp when the asset was created.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'changed' => array(
+        'description' => 'The Unix timestamp when the asset was most recently saved.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'uuid' => array(
+        'type' => 'char',
+        'length' => 36,
+        'default' => '',
+        'description' => 'The Universally Unique Identifier.',
+      ),
+    ),
+    'indexes' => array(
+      'asset_type' => array(array('type', 4)),
+      'asset_title_type' => array('title', array('type', 4)),
+    ),
+    'foreign keys' => array(
+      'uid' => array('users' => 'uid'),
+      'type' => array('asset_types' => 'type'),
+    ),
+    'primary key' => array('aid'),
+  );
+
+  $schema['asset_type'] = array(
+    'description' => 'Stores information about all defined asset types.',
+    'fields' => array(
+      'id' => array(
+        'type' => 'serial',
+        'not null' => TRUE,
+        'description' => 'Primary Key: Unique asset type ID.',
+      ),
+      'type' => array(
+        'description' => 'The machine-readable name of this asset type.',
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+      ),
+      'name' => array(
+        'description' => 'The human-readable name of this asset type.',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+        'translatable' => TRUE,
+      ),
+      'description' => array(
+        'description' => 'A brief description of this asset type.',
+        'type' => 'text',
+        'not null' => TRUE,
+        'size' => 'medium',
+        'translatable' => TRUE,
+      ),
+      'locked' => array(
+        'description' => 'A boolean indicating whether the administrator may delete this asset type.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'size' => 'tiny',
+      ),
+      'help' => array(
+        'description' => 'Help information shown to the user when creating an asset of this type.',
+        'type' => 'text',
+        'not null' => TRUE,
+        'size' => 'medium',
+        'translatable' => TRUE,
+      ),
+      'icon' => array(
+        'description' => 'WYSIWYG button image path.',
+        'type' => 'varchar',
+        'length' => 128,
+        'not null' => FALSE,
+      ),
+      'weight' => array(
+        'description' => 'The weight of this asset type in relation to others.',
+        'type' => 'int',
+        'unsigned' => FALSE,
+        'not null' => TRUE,
+        'default' => 0,
+        'size' => 'tiny',
+      ),
+      'uuid' => array(
+        'type' => 'char',
+        'length' => 36,
+        'default' => '',
+        'description' => 'The Universally Unique Identifier.',
+      ),
+    ) + entity_exportable_schema_fields(),
+    'primary key' => array('id'),
+    'unique keys' => array(
+      'type' => array('type'),
+    ),
+  );
+
+  return $schema;
+}
+
+/**
+ * Implements hook_install().
+ */
+function asset_install() {
+  // Increase the module weight.
+  db_update('system')
+    ->fields(array('weight' => 1))
+    ->condition('type', 'module')
+    ->condition('name', 'asset')
+    ->execute();
+}
+
+/**
+ * Check if uuid fields exist.
+ */
+function asset_update_7100() {
+  foreach (array('asset', 'asset_type') as $base) {
+    if (!db_field_exists($base, 'uuid')) {
+      db_add_field(
+        $base,
+        'uuid',
+        array(
+          'type' => 'char',
+          'length' => 36,
+          'default' => '',
+          'description' => 'The Universally Unique Identifier.',
+        )
+      );
+    }
+  }
+  return FALSE;
+}

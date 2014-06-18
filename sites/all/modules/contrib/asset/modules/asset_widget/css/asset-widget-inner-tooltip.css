@@ -1,0 +1,212 @@
+html {
+  background: #F6F6F2;
+}
+
+body {
+  background: #F6F6F2;
+  margin: 0;
+  padding: 0;
+  overflow: auto;
+  width: 100%;
+  height: 100%;
+}
+
+.tooltip-iframe-body-element {
+  float: left;
+}
+
+.tooltip-iframe-elements {
+  padding: 10px;
+}
+
+/*
+ * CSS Styles that are needed by jScrollPane for it to operate correctly.
+ */
+.jspContainer {
+  overflow: hidden;
+  position: relative;
+}
+
+.jspPane {
+  position: absolute;
+}
+
+.jspVerticalBar {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 4px;
+  height: 100%;
+  background: red;
+}
+
+.jspHorizontalBar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 16px;
+  background: red;
+}
+
+.jspVerticalBar *,
+.jspHorizontalBar * {
+  margin: 0;
+  padding: 0;
+}
+
+.jspCap {
+  display: none;
+}
+
+.jspHorizontalBar .jspCap {
+  float: left;
+}
+
+.jspTrack {
+  background: #333333;
+  position: relative;
+}
+
+.jspDrag {
+  background: #5fbfd6;
+  position: relative;
+  top: 0;
+  left: 0;
+  cursor: pointer;
+}
+
+.jspHorizontalBar .jspTrack,
+.jspHorizontalBar .jspDrag {
+  float: left;
+  height: 100%;
+}
+
+.jspArrow {
+  background: #50506d;
+  text-indent: -20000px;
+  display: block;
+  cursor: pointer;
+}
+
+.jspArrow.jspDisabled {
+  cursor: default;
+  background: #80808d;
+}
+
+.jspVerticalBar .jspArrow {
+  height: 16px;
+}
+
+.jspHorizontalBar .jspArrow {
+  width: 16px;
+  float: left;
+  height: 100%;
+}
+
+.jspVerticalBar .jspArrow:focus {
+  outline: none;
+}
+
+.jspCorner {
+  background: #eeeef4;
+  float: left;
+  height: 100%;
+}
+
+/* Yuk! CSS Hack for IE6 3 pixel bug :( */
+html .jspCorner {
+  margin: 0 -3px 0 0;
+}
+
+/**
+ * CSS styles to theme custom jScrollPane.
+ */
+.jspScrollable .jspVerticalBar {
+  width: 8px;
+  background: #faf7f4;
+  padding: 0 1px 0 11px;
+}
+ .jspScrollable .jspVerticalBar .pointer {
+  backround: none;
+}
+ .jspScrollable .jspVerticalBar .jspTrack {
+  width: 10px;
+  background: url('../images/bgs/track-y.png') 3px 0 repeat-y;
+}
+ .jspScrollable .jspVerticalBar .jspTrack .jspDrag {
+  background: none;
+}
+ .jspScrollable .jspVerticalBar .jspTrack .jspDrag .jspDragTop {
+  display: block;
+  width: 8px;
+  height: 50%;
+  background: url('../images/bgs/bg_scroll-a.png') -28px 0 no-repeat;
+}
+ .jspScrollable .jspVerticalBar .jspTrack .jspDrag .jspDragBottom {
+  display: block;
+  width: 8px;
+  height: 50%;
+  background: url('../images/bgs/bg_scroll-a.png') -28px 100% no-repeat;
+}
+ .jspScrollable .jspVerticalBar .jspTrack .jspDrag.jspHover,
+ .jspScrollable .jspVerticalBar .jspTrack .jspDrag.jspActive {
+  background: none;
+}
+ .jspScrollable .jspVerticalBar .jspTrack .jspDrag.jspHover .jspDragTop,
+ .jspScrollable .jspVerticalBar .jspTrack .jspDrag.jspActive .jspDragTop {
+  background: url('../images/bgs/bg_scroll-a.png') -44px 0 no-repeat;
+}
+ .jspScrollable .jspVerticalBar .jspTrack .jspDrag.jspHover .jspDragBottom,
+ .jspScrollable .jspVerticalBar .jspTrack .jspDrag.jspActive .jspDragBottom {
+  background: url('../images/bgs/bg_scroll-a.png') -44px 100% no-repeat;
+}
+ .jspScrollable .jspHorizontalBar {
+  width: 100%;
+  background: #faf7f4;
+  padding: 10px 0 0;
+  bottom: -5px;
+}
+ .jspScrollable .jspHorizontalBar .jspTrack {
+  width: 100%;
+  background: url('../images/bgs/track-x.png') 0 3px repeat-x;
+}
+ .jspScrollable .jspHorizontalBar .jspTrack .jspDrag {
+  background: none;
+}
+ .jspScrollable .jspHorizontalBar .jspTrack .jspDrag .jspDragLeft {
+  display: block;
+  height: 8px;
+  width: 50%;
+  background: url('../images/bgs/bg_scroll-b.png') 0 -28px no-repeat;
+  float: left;
+}
+ .jspScrollable .jspHorizontalBar .jspTrack .jspDrag .jspDragRight {
+  display: block;
+  height: 8px;
+  width: 50%;
+  background: url('../images/bgs/bg_scroll-b.png') 100% -28px no-repeat;
+  float: right;
+}
+ .jspScrollable .jspHorizontalBar .jspTrack .jspDrag.jspHover,
+ .jspScrollable .jspHorizontalBar .jspTrack .jspDrag.jspActive {
+  background: none;
+}
+ .jspScrollable .jspHorizontalBar .jspTrack .jspDrag.jspHover .jspDragLeft,
+ .jspScrollable .jspHorizontalBar .jspTrack .jspDrag.jspActive .jspDragLeft {
+  background: url('../images/bgs/bg_scroll-b.png') 0 -44px no-repeat;
+}
+ .jspScrollable .jspHorizontalBar .jspTrack .jspDrag.jspHover .jspDragRight,
+ .jspScrollable .jspHorizontalBar .jspTrack .jspDrag.jspActive .jspDragRight {
+  background: url('../images/bgs/bg_scroll-b.png') 100% -44px no-repeat;
+}
+
+.asset-wrapper {
+  font-family: Helvetica, Arial, sans-serif, Garuda, FreeSans;
+}
+.asset-wrapper .content .field-items {
+  font-family: Helvetica, Arial, sans-serif, Garuda, FreeSans;
+}
+.asset-wrapper .content .field-items .field-item {
+  padding: 10px 0 5px 0;
+}

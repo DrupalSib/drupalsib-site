@@ -1,0 +1,139 @@
+<?php
+/**
+ * @file
+ * Install, update, and uninstall functions for the Asset free HTML module.
+ */
+
+/**
+ * Implements hook_install().
+ */
+function asset_freehtml_install() {
+  field_info_cache_clear();
+  $fields = array();
+
+  // Exported field: 'asset-free_html-field_asset_html'.
+  $fields['asset-free_html-field_asset_html'] = array(
+    'field_config' => array(
+      'active' => '1',
+      'cardinality' => '1',
+      'deleted' => '0',
+      'entity_types' => array(),
+      'field_name' => 'field_asset_html',
+      'foreign keys' => array(
+        'format' => array(
+          'columns' => array(
+            'format' => 'format',
+          ),
+          'table' => 'filter_format',
+        ),
+      ),
+      'indexes' => array(
+        'format' => array(
+          0 => 'format',
+        ),
+      ),
+      'locked' => '0',
+      'module' => 'text',
+      'settings' => array(),
+      'translatable' => '0',
+      'type' => 'text_long',
+    ),
+    'field_instance' => array(
+      'bundle' => 'free_html',
+      'default_value' => NULL,
+      'deleted' => '0',
+      'description' => '',
+      'display' => array(
+        'default' => array(
+          'label' => 'hidden',
+          'module' => 'text',
+          'settings' => array(),
+          'type' => 'text_default',
+          'weight' => '0',
+        ),
+        'full' => array(
+          'label' => 'hidden',
+          'settings' => array(),
+          'type' => 'text_default',
+          'weight' => '0',
+        ),
+      ),
+      'entity_type' => 'asset',
+      'field_name' => 'field_asset_html',
+      'label' => 'HTML',
+      'required' => 1,
+      'settings' => array(
+        'text_processing' => '1',
+        'user_register_form' => FALSE,
+      ),
+      'widget' => array(
+        'active' => 1,
+        'module' => 'text',
+        'settings' => array(
+          'rows' => '6',
+        ),
+        'type' => 'text_textarea',
+        'weight' => '1',
+      ),
+    ),
+  );
+
+  // Translatables
+  // Included for use with string extractors like potx.
+  $t = get_t();
+  $t('HTML');
+
+  foreach ($fields as $field) {
+    // Create or update field.
+    $field_config = $field['field_config'];
+    if ($existing_field = field_info_field($field_config['field_name'])) {
+      field_update_field($field_config);
+    }
+    else {
+      field_create_field($field_config);
+    }
+
+    // Create or update field instance.
+    $field_instance = $field['field_instance'];
+    $existing_instance = field_info_instance($field_instance['entity_type'], $field_instance['field_name'], $field_instance['bundle']);
+    if ($existing_instance) {
+      field_update_instance($field_instance);
+    }
+    else {
+      field_create_instance($field_instance);
+    }
+    variable_set('menu_rebuild_needed', TRUE);
+  }
+
+  $bundle_settings = array(
+    'view_modes' => array(
+      'full' => array('custom_settings' => TRUE),
+      'small' => array('custom_settings' => FALSE),
+      'tooltip' => array('custom_settings' => FALSE),
+    ),
+    'extra_fields' => array(
+      'form' => array(
+        'title' => array(
+          'weight' => '0',
+        ),
+      ),
+      'display' => array(),
+    )
+  );
+  field_bundle_settings('asset', 'free_html', $bundle_settings);
+
+  assets_set_wysiwyg_modes(
+    'free_html',
+    array(
+      'full' => 'full',
+      'small' => 'small',
+    )
+  );
+}
+
+/**
+ * Implements hook_uninstall().
+ */
+function asset_freehtml_uninstall() {
+  field_delete_field('field_asset_html');
+}

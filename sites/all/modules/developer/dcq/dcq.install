@@ -1,0 +1,55 @@
+<?php
+
+/**
+ * @file
+ * DCQ install functions.
+ */
+
+require_once 'dcq.files.inc';
+
+/**
+ * Implements hook_install().
+ */
+function dcq_install() {
+  if (!is_dir(DCQ_GIT_HOOKS_PATH)) {
+    drupal_set_message(
+      get_t(
+        '!dir is not exists. DCQ is not work.',
+        array('!dir' => DCQ_GIT_HOOKS_PATH)
+      ),
+      'error'
+    );
+  }
+
+  if (!file_exists(DCQ_DRUPAL_PATH . '/.dcq_ignore') && is_writable(DCQ_DRUPAL_PATH)) {
+    $file = fopen(DCQ_DRUPAL_PATH . '/.dcq_ignore', 'w');
+    $ignore = "includes\n";
+    $ignore .= "misc\n";
+    $ignore .= "modules\n";
+    $ignore .= "profiles\n";
+    $ignore .= "scripts\n";
+    $ignore .= "themes\n";
+    $ignore .= "sites/default\n";
+    $ignore .= "index.php\n";
+    $ignore .= "cron.php\n";
+    $ignore .= "authorize.php\n";
+    $ignore .= "install.php\n";
+    $ignore .= "robots.txt\n";
+    $ignore .= "update.php\n";
+    $ignore .= "xmlrpc.php\n";
+    $ignore .= ".dcq_ignore";
+    fwrite($file, $ignore);
+    fclose($file);
+  }
+  else {
+    drupal_set_message(
+      get_t(
+        'DCQ cannot create and write to file .dcq_ignore in !dir.
+        You should create it manually and allow write permissions to your www-data user.',
+        array('!dir' => DCQ_DRUPAL_PATH)
+      ),
+      'error'
+    );
+  }
+
+}

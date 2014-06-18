@@ -1,0 +1,16 @@
+name = "Assets Feeds Import"
+description = "Asset integration with feeds."
+package = "Feeds"
+core = "7.x"
+
+dependencies[] = "feeds"
+dependencies[] = "asset"
+
+files[] = "AssetFeedsProcessor.inc"
+
+; Information added by drupal.org packaging script on 2013-02-20
+version = "7.x-1.0-beta4"
+core = "7.x"
+project = "asset"
+datestamp = "1361391239"
+

@@ -1,0 +1,60 @@
+<?php
+/**
+ * @file
+ * Emvideo wattv module.
+ */
+
+/**
+ * Implements hook_emvideo_parse().
+ */
+function emvideo_wattv_emvideo_parse($url) {
+  $matches = array();
+  $ret = FALSE;
+  $page_url = '';
+
+  if (preg_match('@http://www\.wat\.tv/video/(.+?\.html)@i', $url, $matches)) {
+    $page_url = 'http://www.wat.tv/video/' . $matches[1];
+  }
+  elseif (preg_match('@http://wat\.tv/p/([0-9a-z]+)@i', $url, $matches)) {
+    $page_url = 'http://wat.tv/p/' . $matches[1];
+  }
+
+  if ($page_url) {
+    $data = @file($page_url);
+
+    if ($data) {
+      $data = implode("\n", $data);
+      $matches = array();
+
+      if (preg_match('@<meta property="og:video" content="http://www.wat.tv/swf2/([0-9a-z]+)" />@i', $data, $matches)) {
+        $ret = array(
+          'source' => 'http://www.wat.tv/swf2/' . $matches[1],
+          'provider' => 'wattv',
+        );
+
+        $matches = array();
+        if (preg_match('@<meta property="og:image" content="http://(.*)wat.fr/f/([0-9a-z\.\-\_]+)" />@i', $data, $matches)) {
+          $image_url = 'http://' . $matches[1] . 'wat.fr/image/';
+          $image_hash = $matches[2];
+          $image_parts = explode('_', $image_hash);
+
+          if (count($image_parts) == 4) {
+            unset($image_parts[2]);
+            $image_hash = implode('_', $image_parts);
+          }
+
+          $image_url .= $image_hash;
+          $ret['snapshot'] = $image_url;
+        }
+      }
+    }
+  }
+  elseif (preg_match('@src="http://www\.wat\.tv/swf2/([0-9a-z]+)"@i', $url, $matches)) {
+    return array(
+      'source' => 'http://www.wat.tv/swf2/' . $matches[1],
+      'provider' => 'wattv',
+    );
+  }
+
+  return $ret;
+}

@@ -1,0 +1,7 @@
+<?php
+/**
+ * @file
+ * Code for the dssocial_feature_view_content_category feature.
+ */
+
+include_once 'dssocial_feature_view_content_category.features.inc';

@@ -1,0 +1,31 @@
+<?php
+/**
+ * @file
+ *  Install functions for drupalsib_site module.
+ */
+
+/**
+ * Implements hook_update().
+ * Enable 'asset' module and 'dssocial_core_feature_search' feature.
+ */
+function drupalsib_site_update_7003() {
+  $modules = array(
+    'asset',
+    'dssocial_core_feature_search',
+    'ckeditor',
+    'asset_widget',
+    'dssocial_core_feature_wysiwyg',
+    'dssocial_core_feature__asset_types'
+  );
+  foreach ($modules as $value) {
+    if (!module_exists($value)) {
+      module_enable(array($value));
+    }
+  }
+  $modules = array('wysiwyg', 'imce', 'imce_wysiwyg');
+  foreach ($modules as $value) {
+    if (module_exists($value)) {
+      module_disable(array($value));
+    }
+  }
+}

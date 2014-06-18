@@ -1,0 +1,17 @@
+name = Image gallery asset
+description = Provides a sample image gallery asset
+package = Media assets
+core = 7.x
+
+dependencies[] = asset_image
+dependencies[] = asset
+dependencies[] = entityreference
+dependencies[] = references_dialog
+dependencies[] = lightbox2
+
+; Information added by drupal.org packaging script on 2013-02-20
+version = "7.x-1.0-beta4"
+core = "7.x"
+project = "asset"
+datestamp = "1361391239"
+

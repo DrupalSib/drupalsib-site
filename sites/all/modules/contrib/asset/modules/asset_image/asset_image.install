@@ -1,0 +1,319 @@
+<?php
+/**
+ * @file
+ * Install, update, and uninstall functions for the Asset image module.
+ */
+
+/**
+ * Implements hook_install().
+ */
+function asset_image_install() {
+  field_info_cache_clear();
+  $fields = array();
+
+  // Exported field: 'asset-image-field_asset_image'.
+  $fields['asset-image-field_asset_image'] = array(
+    'field_config' => array(
+      'active' => '1',
+      'cardinality' => '1',
+      'deleted' => '0',
+      'entity_types' => array(),
+      'field_name' => 'field_asset_image',
+      'foreign keys' => array(
+        'fid' => array(
+          'columns' => array(
+            'fid' => 'fid',
+          ),
+          'table' => 'file_managed',
+        ),
+      ),
+      'indexes' => array(
+        'fid' => array(
+          0 => 'fid',
+        ),
+      ),
+      'locked' => '0',
+      'module' => 'image',
+      'settings' => array(
+        'default_image' => 0,
+        'uri_scheme' => 'public',
+      ),
+      'translatable' => '0',
+      'type' => 'image',
+    ),
+    'field_instance' => array(
+      'bundle' => 'image',
+      'deleted' => '0',
+      'description' => '',
+      'display' => array(
+        'default' => array(
+          'label' => 'hidden',
+          'module' => 'image',
+          'settings' => array(
+            'image_link' => '',
+            'image_style' => 'asset_image_full',
+          ),
+          'type' => 'image',
+          'weight' => '0',
+        ),
+        'full' => array(
+          'label' => 'hidden',
+          'module' => 'image',
+          'settings' => array(
+            'image_link' => '',
+            'image_style' => 'asset_image_full',
+          ),
+          'type' => 'image',
+          'weight' => '0',
+        ),
+        'small' => array(
+          'label' => 'hidden',
+          'module' => 'image',
+          'settings' => array(
+            'image_link' => '',
+            'image_style' => 'asset_image_small',
+          ),
+          'type' => 'image',
+          'weight' => '0',
+        ),
+      ),
+      'entity_type' => 'asset',
+      'field_name' => 'field_asset_image',
+      'label' => 'Image',
+      'required' => 1,
+      'settings' => array(
+        'alt_field' => 0,
+        'default_image' => 0,
+        'file_directory' => 'assets/images',
+        'file_extensions' => 'png gif jpg jpeg',
+        'max_filesize' => '',
+        'max_resolution' => '',
+        'min_resolution' => '',
+        'title_field' => 0,
+        'user_register_form' => FALSE,
+      ),
+      'widget' => array(
+        'active' => 1,
+        'module' => 'image',
+        'settings' => array(
+          'preview_image_style' => 'medium',
+          'progress_indicator' => 'throbber',
+        ),
+        'type' => 'image_image',
+        'weight' => '1',
+      ),
+    ),
+  );
+
+  // Exported field: 'asset-image-field_asset_image_copyright'.
+  $fields['asset-image-field_asset_image_copyright'] = array(
+    'field_config' => array(
+      'active' => '1',
+      'cardinality' => '1',
+      'deleted' => '0',
+      'entity_types' => array(),
+      'field_name' => 'field_asset_image_copyright',
+      'foreign keys' => array(
+        'format' => array(
+          'columns' => array(
+            'format' => 'format',
+          ),
+          'table' => 'filter_format',
+        ),
+      ),
+      'indexes' => array(
+        'format' => array(
+          0 => 'format',
+        ),
+      ),
+      'locked' => '0',
+      'module' => 'text',
+      'settings' => array(
+        'max_length' => '255',
+      ),
+      'translatable' => '0',
+      'type' => 'text',
+    ),
+    'field_instance' => array(
+      'bundle' => 'image',
+      'default_value' => NULL,
+      'deleted' => '0',
+      'description' => '',
+      'display' => array(
+        'default' => array(
+          'label' => 'hidden',
+          'module' => 'text',
+          'settings' => array(),
+          'type' => 'text_default',
+          'weight' => '1',
+        ),
+        'full' => array(
+          'label' => 'hidden',
+          'module' => 'text',
+          'settings' => array(),
+          'type' => 'text_default',
+          'weight' => '1',
+        ),
+        'small' => array(
+          'label' => 'hidden',
+          'module' => 'text',
+          'settings' => array(),
+          'type' => 'text_default',
+          'weight' => '1',
+        ),
+      ),
+      'entity_type' => 'asset',
+      'field_name' => 'field_asset_image_copyright',
+      'label' => 'Copyright',
+      'required' => 0,
+      'settings' => array(
+        'text_processing' => '0',
+        'user_register_form' => FALSE,
+      ),
+      'widget' => array(
+        'active' => 1,
+        'module' => 'text',
+        'settings' => array(
+          'size' => '60',
+        ),
+        'type' => 'text_textfield',
+        'weight' => '2',
+      ),
+    ),
+  );
+
+  // Exported field: 'asset-image-field_asset_image_description'.
+  $fields['asset-image-field_asset_image_description'] = array(
+    'field_config' => array(
+      'active' => '1',
+      'cardinality' => '1',
+      'deleted' => '0',
+      'entity_types' => array(),
+      'field_name' => 'field_asset_image_description',
+      'foreign keys' => array(
+        'format' => array(
+          'columns' => array(
+            'format' => 'format',
+          ),
+          'table' => 'filter_format',
+        ),
+      ),
+      'indexes' => array(
+        'format' => array(
+          0 => 'format',
+        ),
+      ),
+      'locked' => '0',
+      'module' => 'text',
+      'settings' => array(),
+      'translatable' => '0',
+      'type' => 'text_long',
+    ),
+    'field_instance' => array(
+      'bundle' => 'image',
+      'default_value' => NULL,
+      'deleted' => '0',
+      'description' => '',
+      'display' => array(
+        'default' => array(
+          'label' => 'hidden',
+          'module' => 'text',
+          'settings' => array(),
+          'type' => 'text_default',
+          'weight' => '2',
+        ),
+        'full' => array(
+          'label' => 'hidden',
+          'module' => 'text',
+          'settings' => array(),
+          'type' => 'text_default',
+          'weight' => '2',
+        ),
+        'small' => array(
+          'label' => 'hidden',
+          'module' => 'text',
+          'settings' => array(),
+          'type' => 'text_default',
+          'weight' => '2',
+        ),
+      ),
+      'entity_type' => 'asset',
+      'field_name' => 'field_asset_image_description',
+      'label' => 'Description',
+      'required' => 0,
+      'settings' => array(
+        'text_processing' => '0',
+        'user_register_form' => FALSE,
+      ),
+      'widget' => array(
+        'active' => 1,
+        'module' => 'text',
+        'settings' => array(
+          'rows' => '5',
+        ),
+        'type' => 'text_textarea',
+        'weight' => '3',
+      ),
+    ),
+  );
+
+  // Translatables
+  // Included for use with string extractors like potx.
+  st('Copyright');
+  st('Description');
+  st('Image');
+
+
+  foreach ($fields as $field) {
+    // Create or update field.
+    $field_config = $field['field_config'];
+    if ($existing_field = field_info_field($field_config['field_name'])) {
+      field_update_field($field_config);
+    }
+    else {
+      field_create_field($field_config);
+    }
+
+    // Create or update field instance.
+    $field_instance = $field['field_instance'];
+    $existing_instance = field_info_instance($field_instance['entity_type'], $field_instance['field_name'], $field_instance['bundle']);
+    if ($existing_instance) {
+      field_update_instance($field_instance);
+    }
+    else {
+      field_create_instance($field_instance);
+    }
+    variable_set('menu_rebuild_needed', TRUE);
+  }
+
+  $bundle_settings = array(
+    'view_modes' => array(
+      'full' => array('custom_settings' => TRUE),
+      'small' => array('custom_settings' => TRUE),
+      'tooltip' => array('custom_settings' => FALSE),
+    ),
+    'extra_fields' => array(
+      'form' => array(
+        'title' => array(
+          'weight' => '0',
+        ),
+      ),
+      'display' => array(),
+    )
+  );
+  field_bundle_settings('asset', 'image', $bundle_settings);
+
+  assets_set_wysiwyg_modes('image', array(
+    'full' => 'full',
+    'small' => 'small',
+  ));
+}
+
+/**
+ * Implements hook_uninstall().
+ */
+function asset_image_uninstall() {
+  field_delete_field('field_asset_image_description');
+  field_delete_field('field_asset_image_copyright');
+  field_delete_field('field_asset_image');
+}

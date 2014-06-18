@@ -1,0 +1,187 @@
+<?php
+
+/**
+ * @file
+ * DCQ module
+ */
+
+require_once 'dcq.files.inc';
+
+/**
+ * Implements hook_init().
+ */
+function dcq_init() {
+  // Check.
+  if (arg(0) == 'admin' && is_dir(DCQ_GIT_HOOKS_PATH)) {
+
+    // Checking what DCQ scripts are exists.
+    $run_script = DCQ_GIT_HOOKS_PATH . '/' . DCQ_RUN_SCRIPT_NAME;
+    $check_script = DCQ_GIT_HOOKS_PATH . '/' . DCQ_CHECK_SCRIPT_NAME;
+
+    if (!file_exists($run_script) || !file_exists($check_script)) {
+      $copy_link = l(t('here'), 'dcq/copy');
+      drupal_set_message(
+        t(
+          'DCQ is not installed. Click !here to install.',
+          array(
+            '!here' => $copy_link,
+          )
+        ),
+        'error'
+      );
+    }
+    // Checking what DCQ scripts is executable.
+    elseif (!is_executable($check_script) || !is_executable($run_script)) {
+      drupal_set_message(
+        t(
+          'DCQ: !file1 or !file2 in !dir is not executable, allow execute
+          permissions for your www-data user for files !file1 and !file2 in directory !dir.',
+          array(
+            '!dir' => DCQ_GIT_HOOKS_PATH,
+            '!file1' => DCQ_RUN_SCRIPT_NAME,
+            '!file2' => DCQ_CHECK_SCRIPT_NAME,
+          )
+        ), 'error'
+      );
+    }
+  }
+  elseif (arg(0) == 'admin' && !DCQ_GIT_HOOKS_PATH) {
+    drupal_set_message(
+      t(
+        'DCQ: .git/hooks directory is not exists in your project.'
+      ),
+      'error'
+    );
+  }
+}
+
+/**
+ * Implements hook_menu().
+ */
+function dcq_menu() {
+  $items = array();
+  $items['dcq/copy'] = array(
+    'title' => 'Copy scripts for checking into .git/hooks.',
+    'page callback' => 'dcq_copy',
+    'access arguments' => array('administer system pages'),
+    'type' => MENU_CALLBACK,
+  );
+
+  $items['admin/config/development/dcq'] = array(
+    'title' => 'DCQ',
+    'description' => 'Options of DCQ module.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('dcq_form'),
+    'access arguments' => array('administer system pages'),
+  );
+
+  return $items;
+}
+
+/**
+ * Copy scripts for checking drupal code style into .git/hooks.
+ */
+function dcq_copy() {
+  dcq_install_scripts();
+  drupal_goto('admin/config/development/dcq');
+}
+
+/**
+ * Form builder.
+ */
+function dcq_form() {
+  $form = array();
+
+  $path = DCQ_DRUPAL_PATH . '/.dcq_ignore';
+
+  $ignore = '';
+  if (file_exists($path) && is_writable($path)) {
+    $file = fopen($path, 'r+');
+    if ($file) {
+      $size = filesize($path);
+      if ($size > 0) {
+        $ignore = fread($file, $size);
+      }
+      fclose($file);
+    }
+    else {
+      drupal_set_message(
+        t('DCQ: !path is not writable. You should allow write permissions
+        for your www-data user into this dir.', array('!path' => $path)),
+        'error'
+      );
+    }
+  }
+
+  $form['install'] = array(
+    '#markup' => l(t('Install DCQ scripts.'), 'dcq/copy'),
+  );
+
+  if (dcq_check_operability()) {
+    $form['dcq_status'] = array(
+      '#markup' =>
+        '<div class="messages status">' . t('DCQ works correctly.') . '</div>',
+    );
+  }
+
+  $form['info'] = array(
+    '#markup' => t(
+      'Enter here the path for files and folders that you
+      do not want to check through DCQ.'
+    ),
+  );
+
+  $form['ignore'] = array(
+    '#type' => 'textarea',
+    '#title' => t('DCQ ignore list'),
+    '#default_value' => $ignore,
+    '#rows' => 20,
+    '#required' => TRUE,
+  );
+
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Save'),
+  );
+
+  return $form;
+}
+
+/**
+ * Form submit.
+ */
+function dcq_form_submit($form, &$form_state) {
+  $path = DCQ_DRUPAL_PATH . '/.dcq_ignore';
+  if (is_writable($path)) {
+    $file = fopen($path, 'w');
+    $ignore = $form_state['values']['ignore'];
+    if (fwrite($file, $ignore)) {
+      drupal_set_message(t('DCQ: ignore list has been saved.'));
+    }
+    fclose($file);
+  }
+  else {
+    drupal_set_message(
+      t('DCQ: !path is not writable.', array('!path' => $path)),
+      'error'
+    );
+  }
+}
+
+/**
+ * Check what module works successfully.
+ */
+function dcq_check_operability() {
+  // Check what DCQ files exists and executable.
+  if (!file_exists(DCQ_GIT_HOOKS_PATH . '/' . DCQ_RUN_SCRIPT_NAME)
+        || !is_executable(DCQ_GIT_HOOKS_PATH . '/' . DCQ_RUN_SCRIPT_NAME)) {
+    return false;
+  }
+
+  if (!file_exists(DCQ_GIT_HOOKS_PATH . '/' . DCQ_CHECK_SCRIPT_NAME)
+        || !is_executable(DCQ_GIT_HOOKS_PATH . '/' . DCQ_CHECK_SCRIPT_NAME)) {
+    return false;
+  }
+
+  return true;
+}

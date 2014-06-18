@@ -1,0 +1,7 @@
+name = DrupalSib site
+description = The base module for DrupalSib site.
+core = 7.x
+package = "drupalsib_site"
+
+dependencies[] = dssocial_core
+

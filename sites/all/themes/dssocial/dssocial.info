@@ -1,0 +1,15 @@
+name = dssocial
+description = This is theme for dssocial sib.
+core = 7.x
+
+scripts[] = js/jScrollPane.js
+scripts[] = js/jcarousel.js
+scripts[] = js/js.js
+scripts[] = js/jquery-ui-1.8.5.custom.min.js
+scripts[] = js/jquery.cycle.all.js
+scripts[] = js/slider.js
+scripts[] = js/custom.js
+
+stylesheets[all][] = css/style.css
+
+plugins[panels][layouts] = layouts

@@ -1,0 +1,79 @@
+<?php
+/**
+ * @file
+ * Asset image module.
+ */
+
+/**
+ * Implements hook_default_asset_type().
+ */
+function asset_image_default_asset_type() {
+  $items = array();
+  $items['image'] = entity_import('asset_type', '{
+    "type" : "image",
+    "name" : "Image",
+    "icon" : "AddImage.png",
+    "description" : "Sample Image",
+    "help" : "",
+    "weight" : "0",
+    "locked" : "0",
+    "rdf_mapping" : []
+  }');
+
+  return $items;
+}
+
+/**
+ * Implements hook_image_default_styles().
+ */
+function asset_image_image_default_styles() {
+  $styles = array();
+
+  // Exported image style: asset_image_full.
+  $styles['asset_image_full'] = array(
+    'name' => 'asset_image_full',
+    'effects' => array(
+      0 => array(
+        'label' => 'Scale',
+        'help' => 'Scaling will maintain the aspect-ratio of the original image. If only a single dimension is specified, the other dimension will be calculated.',
+        'effect callback' => 'image_scale_effect',
+        'dimensions callback' => 'image_scale_dimensions',
+        'form callback' => 'image_scale_form',
+        'summary theme' => 'image_scale_summary',
+        'module' => 'image',
+        'name' => 'image_scale',
+        'data' => array(
+          'width' => '664',
+          'height' => '487',
+          'upscale' => 0,
+        ),
+        'weight' => '2',
+      ),
+    ),
+  );
+
+  // Exported image style: asset_image_small.
+  $styles['asset_image_small'] = array(
+    'name' => 'asset_image_small',
+    'effects' => array(
+      1 => array(
+        'label' => 'Scale',
+        'help' => 'Scaling will maintain the aspect-ratio of the original image. If only a single dimension is specified, the other dimension will be calculated.',
+        'effect callback' => 'image_scale_effect',
+        'dimensions callback' => 'image_scale_dimensions',
+        'form callback' => 'image_scale_form',
+        'summary theme' => 'image_scale_summary',
+        'module' => 'image',
+        'name' => 'image_scale',
+        'data' => array(
+          'width' => '259',
+          'height' => '160',
+          'upscale' => 0,
+        ),
+        'weight' => '2',
+      ),
+    ),
+  );
+
+  return $styles;
+}

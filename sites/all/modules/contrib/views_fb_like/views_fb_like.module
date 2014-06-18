@@ -1,0 +1,130 @@
+<?php
+
+
+/**
+ * @file
+ *   Views integration for FB Like.
+ */
+
+/**
+ * Implementation of hook_views_api().
+ */
+function views_fb_like_views_api() {
+  return array(
+    'api' => '3.0',
+  );
+}
+
+/**
+ * Updates the FB like status for a set of given nodes
+ */
+function views_fb_like_update_nodes($nodes = array()) {
+  if (empty($nodes)) {
+    return;
+  }
+
+  // Compute the URLs of the nodes.
+  $links = array();
+  foreach ($nodes as $nid) {
+    // If the fb_social module is around, use its function.
+    if (function_exists('fb_social_url')) {
+      $links[$nid] = fb_social_url('node/' . $nid);
+    }
+    else {
+      $links[$nid] = url('node/' . $nid, array('absolute' => TRUE));
+    }
+
+  }
+
+  // Get slice of array so that we don't send massive HTTP requests.
+  while ($links_slice = _views_fb_like_get_safe_slice($links, 1800)) {
+
+    // Go get the counts for those nodes.
+    $querystring['query'] = 'select url, like_count, share_count, comment_count, total_count from link_stat where url in ("' . implode('", "', $links_slice). '")';
+    $querystring['format'] = 'json';
+
+
+    $fql = url('https://api.facebook.com/method/fql.query', array('query' => $querystring));
+    $request = drupal_http_request($fql);
+    if (($request->code == 200) && (!empty($request->data))) {
+      $result = json_decode($request->data);
+      // Flip the links array:
+      $links_flipped = array_flip($links_slice);
+      foreach ($result as $row) {
+        if (isset($links_flipped[$row->url])) {
+          views_fb_like_update_node_count($links_flipped[$row->url], (array)$row);
+        }
+      }
+    }
+
+    // Remove slice from main array and process next slice
+	  foreach (array_keys($links_slice) as $key) {
+	    unset($links[$key]);
+    }
+  }
+
+}
+
+function _views_fb_like_get_safe_slice(&$links, $limit) {
+  $offset = 0;
+  $current_length = 0;
+
+  foreach ($links as $key => $link) {
+    $this_length = strlen(rawurlencode($link));
+
+    if ($current_length + $this_length <= $limit) {
+      $offset++;
+      $current_length += $this_length;
+    }
+    else {
+      break;
+    }
+  }
+
+  return array_slice($links, 0, $offset, TRUE);
+}
+
+/**
+ * Updates the FB counts of a single node.
+ */
+function views_fb_like_update_node_count($nid, $counts, $timestamp = NULL) {
+  if (is_null($timestamp)) {
+    $timestamp = time();
+  }
+
+  $record = array(
+    'last_updated' => $timestamp,
+    'nid' => $nid,
+  );
+  foreach (array('like', 'share', 'comment', 'total') as $name) {
+    if (isset($counts[$name . '_count'])) {
+      $record[$name . '_count'] = $counts[$name . '_count'];
+    }
+  }
+
+  if (db_query('SELECT count(*) FROM {views_fb_like} WHERE nid = :nid', array(':nid' => $nid))->fetchField()) {
+    // Update
+    drupal_write_record('views_fb_like', $record, 'nid');
+
+  }
+  else {
+    // Insert
+    drupal_write_record('views_fb_like', $record);
+  }
+}
+
+/**
+ * Implementation of hook_views_default_views().
+ */
+function views_fb_like_views_default_views() {
+  $views = array();
+
+  $files = file_scan_directory(drupal_get_path('module', 'views_fb_like') . '/views/default', '#\.inc$#');
+
+  foreach ($files as $file) {
+      include($file->uri);
+      $views[$view->name] = $view;
+  }
+
+  return $views;
+}

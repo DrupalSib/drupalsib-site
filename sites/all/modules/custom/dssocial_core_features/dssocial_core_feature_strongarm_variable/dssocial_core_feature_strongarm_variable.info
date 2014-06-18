@@ -1,0 +1,13 @@
+name = dssocial_core_feature_strongarm_variable
+description = Variables
+core = 7.x
+package = Features
+php = 5.2.4
+version = 7.x-1.1
+project = dssocial_core_feature_strongarm_variable
+dependencies[] = ctools
+dependencies[] = strongarm
+features[ctools][] = strongarm:strongarm:1
+features[features_api][] = api:1
+features[variable][] = dssocial_core_fb_api_id
+features[variable][] = dssocial_core_vk_api_id

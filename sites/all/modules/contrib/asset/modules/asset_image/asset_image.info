@@ -1,0 +1,16 @@
+name = "Asset Image"
+description = "Provides sample image asset"
+package = "Media assets"
+core = "7.x"
+
+dependencies[] = "asset"
+dependencies[] = field_sql_storage
+dependencies[] = image
+dependencies[] = text
+
+; Information added by drupal.org packaging script on 2013-02-20
+version = "7.x-1.0-beta4"
+core = "7.x"
+project = "asset"
+datestamp = "1361391239"
+

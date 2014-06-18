@@ -1,0 +1,1021 @@
+<?php
+/**
+ * @file
+ * Code for the Asset widget module.
+ */
+
+define('ASSET_WIDGET_MODULE_PATH', drupal_get_path('module', 'asset_widget'));
+
+/**
+ * Implements hook_menu().
+ */
+function asset_widget_menu() {
+  $items = array();
+
+  $items['ajax/asset-widget/get/tab'] = array(
+    'title' => 'Get tab content by ID',
+    'page callback' => 'asset_widget_get_tab_by_id',
+    // We'll get all interesting data in POST.
+    'page arguments' => array(),
+    'file' => 'asset_widget.admin.inc',
+    'access arguments' => array('access search widget'),
+    'type' => MENU_CALLBACK,
+    'delivery callback' => 'ajax_deliver',
+  );
+
+  $items['ajax/asset-widget/drop'] = array(
+    'title' => 'Drop asset to form field',
+    'page callback' => 'asset_widget_drop_get_label',
+    // We'll get all interesting data in POST.
+    'page arguments' => array(),
+    'file' => 'asset_widget.admin.inc',
+    'access arguments' => array('access search widget'),
+    'type' => MENU_CALLBACK,
+    'delivery callback' => 'ajax_deliver',
+  );
+
+  return $items;
+}
+
+/**
+ * Implements hook_init().
+ */
+function asset_widget_init() {
+  // Add special setting to detect ih-frame forms.
+  if (asset_widget_in_frame_form()) {
+    drupal_add_js(array('assetWidget' => array('assetFrame' => TRUE)), 'setting');
+  }
+}
+
+/**
+ * Implements hook_admin_paths().
+ */
+function asset_widget_admin_paths() {
+  $paths = array(
+    'ajax/asset-widget/get/tab' => TRUE,
+    'ajax/asset-widget/drop' => TRUE,
+  );
+
+  return $paths;
+}
+
+/**
+ * Helper to determine in-frame forms context.
+ */
+function asset_widget_in_frame_form() {
+  return !empty($_GET['asset_frame']);
+}
+
+/**
+ * Helper to determine that current path used for tooltip in widget.
+ */
+function asset_widget_is_tooltip() {
+  return drupal_match_path($_GET['q'], 'assets/tooltip/*') && !empty($_GET['asset_widget_tooltip']);
+}
+
+/**
+ * Implements hook_views_api().
+ */
+function asset_widget_views_api() {
+  return array(
+    'api' => '3.0',
+    'path' => ASSET_WIDGET_MODULE_PATH . '/views',
+    'template path' => ASSET_WIDGET_MODULE_PATH . '/views/theme',
+  );
+}
+
+/**
+ * Static flag to indicate should we add widget to page or not. Attaching widget see in hook_page_alter().
+ */
+function asset_widget_add_to_page($set = NULL) {
+  static $add_to_page = FALSE;
+  if (isset($set)) {
+    $add_to_page = $set;
+  }
+  return $add_to_page;
+}
+
+/**
+ * Implements hook_element_info_alter().
+ */
+function asset_widget_element_info_alter(&$info) {
+  // Don't process fields if current theme is not admin, access denied, inside widget frames, field settings form and different fields added by ajax.
+  if (user_access('access search widget')
+    && _asset_widget_is_admin_theme()
+    && !asset_widget_in_frame_form()
+    && !drupal_match_path(current_path(), 'admin/*')) {
+
+    // Add callback for text fields with wysiwyg.
+    if (module_exists('ckeditor') && isset($info['text_format'])) {
+      $info['text_format']['#process'][] = 'asset_widget_pre_render_text_format';
+    }
+
+    // Add callback for entityreference fields.
+    if (isset($info['textfield'])) {
+      $info['textfield']['#process'][] = 'asset_widget_pre_render_textfield';
+    }
+
+    // Add callback for contextual_links to alter destination in edit links after ajax enabled view in widget.
+    if (isset($info['contextual_links'])) {
+      $info['contextual_links']['#pre_render'][] = 'asset_widget_pre_render_contextual';
+    }
+  }
+
+  // Remove any references_dialog links inside frames.
+  if (asset_widget_in_frame_form() && module_exists('references_dialog')) {
+    foreach (references_dialog_widgets() as $widget) {
+      if (isset($info[$widget['element_type']]['#after_build'])
+        && (($pos = array_search('references_dialog_process_widget', $info[$widget['element_type']]['#after_build'])) !== FALSE)) {
+        unset($info[$widget['element_type']]['#after_build'][$pos]);
+      }
+    }
+  }
+}
+
+/**
+ * Alter contextual_links renderable array to prevent wrong destination for view edit link.
+ */
+function asset_widget_pre_render_contextual($element) {
+  if ((arg(0) == 'ajax') && !empty($element['#links']['views-ui-edit']['query']['destination'])) {
+    unset($element['#links']['views-ui-edit']['query']);
+  }
+
+  return $element;
+}
+
+/**
+ * Helper function to determine that current theme is admin theme.
+ */
+function _asset_widget_is_admin_theme() {
+  global $theme_key;
+  $admin_theme = variable_get('admin_theme');
+
+  if (($admin_theme && ($theme_key == $admin_theme))
+    || (!$admin_theme && ($theme_key == variable_get('admin_theme', 'seven')))
+    || variable_get('asset_widget_enable_widget_in_front_theme', FALSE)) {
+    return TRUE;
+  }
+
+  return FALSE;
+}
+
+/**
+ * Implements hook_module_implements_alter().
+ */
+function asset_widget_module_implements_alter(&$implementations, $hook) {
+  // Ensure that our hook is last.
+  if ($hook == 'element_info_alter' && isset($implementations['asset_widget'])) {
+    unset($implementations['asset_widget']);
+    $implementations['asset_widget'] = FALSE;
+  }
+}
+
+/**
+ * Text format element pre_render function.
+ */
+function asset_widget_pre_render_text_format($element) {
+  // Cache attaching by element id.
+  static $attached = array();
+
+  if (empty($attached[$element['#id']])) {
+    global $user;
+
+    // If $element['#format'] is empty, it means that field don't have input formats enabled.
+    if (!empty($element['#format'])) {
+      if (!empty($element['format']['format']['#options'])) {
+        // Cache allowed formats in one element. Not static, because drupal_add_js will write it properly.
+        $formats_asset_plugin = array();
+        $classes_added = FALSE;
+        static $additional_classes = array();
+
+        foreach ($element['format']['format']['#options'] as $format => $name) {
+          // Skip plain text.
+          if ($format == 'plain_text') {
+            continue;
+          }
+
+          // Load format.
+          if ($format = filter_format_load($format)) {
+            // Check user access.
+            $allowed_roles = filter_get_roles_by_format($format);
+            foreach ($user->roles as $id => $role) {
+              if (!empty($allowed_roles[$id])) {
+                // Check that asset plugin is enabled.
+                module_load_include('inc', 'ckeditor', 'includes/ckeditor.lib');
+                if ($ckeditor_profile = ckeditor_get_profile($format->format)) {
+                  if (!empty($ckeditor_profile->settings['loadPlugins']['asset'])) {
+                    // Build some additional classes for textarea.
+                    // We always have all asset types allowed in wysiwyg. So we can cache it.
+                    if (empty($additional_classes)) {
+                      $additional_classes['match-field'] = 'match-field';
+
+                      if ($asset_types = asset_widget_get_assets_types()) {
+                        foreach ($asset_types as $asset_type) {
+                          if (empty($additional_classes[$asset_type])) {
+                            $additional_classes[$asset_type] = "match-$asset_type";
+                          }
+                        }
+                      }
+                    }
+
+                    // Avoid multiple classes adding to the element.
+                    if (empty($classes_added)) {
+                      // Add classes and attach widget.
+                      _asset_widget_element_attach_asset_widget($element, array(), $additional_classes);
+                      $classes_added = TRUE;
+                    }
+
+                    // Store allowed format.
+                    $formats_asset_plugin[$format->format] = $format->format;
+                  }
+                }
+              }
+            }
+          }
+        }
+
+        // Store allowed formats and additional classes to js.
+        drupal_add_js(
+          array(
+            'assetWidget' => array(
+              'allowedFormats' => $formats_asset_plugin,
+              'additionalClasses' => $additional_classes,
+            ),
+          ),
+          'setting'
+        );
+      }
+
+      // Store element id.
+      $attached[$element['#id']] = $element['#id'];
+    }
+
+    return $element;
+  }
+}
+
+/**
+ * Text field element pre_render function.
+ */
+function asset_widget_pre_render_textfield($element) {
+  if (!isset($element['#entity_type'])) {
+    return $element;
+  }
+
+  static $attached = array();
+  // Skip static caching for multiple enityreference fields.
+  // In other cases highlight will be disabled after elements rebuild.
+  // @todo: here it's possible to add caching. Same for asset_widget_pre_render_text_format().
+  if (empty($attached[$element['#id']]) || (current_path() == 'system/ajax')) {
+    if ($field = field_info_field($element['#field_name'])) {
+      if ($field['active'] && ($field['type'] == 'entityreference')) {
+        if (!empty($field['settings']['target_type']) && ($field['settings']['target_type'] == 'asset')) {
+          $asset_types = !empty($field['settings']['handler_settings']['target_bundles'])
+            ? array_keys($field['settings']['handler_settings']['target_bundles'])
+            : array();
+
+          _asset_widget_element_attach_asset_widget($element, $asset_types);
+        }
+      }
+    }
+
+    $attached[$element['#id']] = $element['#id'];
+  }
+
+  return $element;
+}
+
+/**
+ * Attach asset widget form to element.
+ */
+function _asset_widget_element_attach_asset_widget(&$element, $asset_types = array(), $additional_classes = array()) {
+  if (empty($additional_classes) && !empty($asset_types) && is_array($asset_types)) {
+    $additional_classes = array('match-field');
+    foreach ($asset_types as $asset_type) {
+      if (empty($additional_classes[$asset_type])) {
+        $additional_classes[$asset_type] = "match-$asset_type";
+      }
+    }
+  }
+
+  if (!empty($additional_classes) && is_array($additional_classes)) {
+    if (isset($element['value'])) {
+      if (!isset($element['value']['#attributes']['class'])) {
+        $element['value']['#attributes']['class'] = array();
+      }
+
+      $element['value']['#attributes']['class'] = array_merge(
+        $element['value']['#attributes']['class'],
+        $additional_classes
+      );
+    }
+    elseif (isset($element['#attributes'])) {
+      if (!isset($element['#attributes']['class'])) {
+        $element['#attributes']['class'] = array();
+      }
+
+      $element['#attributes']['class'] = array_merge(
+        $element['#attributes']['class'],
+        $additional_classes
+      );
+    }
+  }
+
+  // Add widget HTML to page.
+  asset_widget_add_to_page(TRUE);
+}
+
+/**
+ * Implements hook_library().
+ */
+function asset_widget_library() {
+  $libraries['asset_widget'] = array(
+    'title' => 'Asset widget library',
+    'version' => '1.0',
+    'js' => array(
+      ASSET_WIDGET_MODULE_PATH . '/js/jquery.mousewheel.min.js' => array('weight' => 4),
+      ASSET_WIDGET_MODULE_PATH . '/js/jquery.jscrollpane.min.js' => array('weight' => 4),
+      ASSET_WIDGET_MODULE_PATH . '/js/jquery.ui.selectmenu.min.js' => array('weight' => 4),
+      ASSET_WIDGET_MODULE_PATH . '/js/jquery.multiSelect.min.js' => array('weight' => 4),
+      ASSET_WIDGET_MODULE_PATH . '/js/asset-widget.js' => array('weight' => 5),
+    ),
+    // Note that we add our css last, after all THEME styles to avoid overrides.
+    'css' => array(
+      ASSET_WIDGET_MODULE_PATH . '/css/asset-widget.css' => array('weight' => 10, 'group' => CSS_THEME),
+      ASSET_WIDGET_MODULE_PATH . '/css/asset-widget-custom.css' => array('weight' => 11, 'group' => CSS_THEME),
+    ),
+    'dependencies' => array(
+      array('system', 'ui.draggable'),
+      array('system', 'ui.droppable'),
+      array('system', 'ui.datepicker'),
+      array('system', 'drupal.ajax'),
+    ),
+  );
+
+  $libraries['asset_widget_inner_form'] = array(
+    'title' => 'Asset widget inner form library',
+    'version' => '1.0',
+    'js' => array(
+      ASSET_WIDGET_MODULE_PATH . '/js/jquery.mousewheel.min.js' => array('weight' => 4),
+      ASSET_WIDGET_MODULE_PATH . '/js/jquery.jscrollpane.min.js' => array('weight' => 4),
+      ASSET_WIDGET_MODULE_PATH . '/js/asset-widget-inner-form.js' => array('weight' => 10, 'group' => JS_THEME),
+    ),
+    // Note that we add our css last, after all THEME styles to avoid overrides.
+    'css' => array(
+      ASSET_WIDGET_MODULE_PATH . '/css/asset-widget-inner-form.css' => array('weight' => 10, 'group' => CSS_THEME),
+    ),
+  );
+
+  $libraries['asset_widget_tooltip'] = array(
+    'title' => 'Asset widget tooltip library',
+    'version' => '1.0',
+    'js' => array(
+      ASSET_WIDGET_MODULE_PATH . '/js/jquery.mousewheel.min.js' => array('weight' => 4),
+      ASSET_WIDGET_MODULE_PATH . '/js/jquery.jscrollpane.min.js' => array('weight' => 4),
+      ASSET_WIDGET_MODULE_PATH . '/js/asset-widget-inner-tooltip.js' => array('weight' => 10, 'group' => JS_THEME),
+    ),
+    // Note that we add our css last, after all THEME styles to avoid overrides.
+    'css' => array(
+      ASSET_WIDGET_MODULE_PATH . '/css/asset-widget-inner-tooltip.css' => array('weight' => 10, 'group' => CSS_THEME),
+    ),
+  );
+
+  return $libraries;
+}
+
+/**
+ * Implements hook_library_alter().
+ */
+function asset_widget_library_alter(&$libraries, $module) {
+  // Switch default asset tooltip library to widget library.
+  if ($module == 'asset' && asset_widget_is_tooltip() && isset($libraries['asset_tooltip_inner'])) {
+    unset($libraries['asset_tooltip_inner']);
+    drupal_add_library('asset_widget', 'asset_widget_tooltip');
+  }
+}
+
+/**
+ * Implements hook_permission().
+ */
+function asset_widget_permission() {
+  return array(
+    'access search widget' => array(
+      'title' => t('Access assets search widget'),
+      'description' => t('Access assets search widget in UI'),
+    ),
+  );
+}
+
+/**
+ * Implements hook_entity_info_alter().
+ */
+function asset_widget_entity_info_alter(&$entity_info) {
+  $entity_info['asset']['view modes']['widget_search'] = array(
+    'label' => t('Widget search'),
+    'custom settings' => TRUE,
+  );
+}
+
+/**
+ * Implements hook_form_alter().
+ */
+function asset_widget_form_alter(&$form, &$form_state, $form_id) {
+  // Affect edit forms in asset widget iframes.
+  if (!empty($form_id) && preg_match('/asset_edit_.*_form$/', $form_id) && !empty($_GET['asset_frame'])) {
+    if (isset($form['actions']['delete']['#submit'])) {
+      $form['actions']['delete']['#submit'][] = 'asset_widget_base_form_submit_delete';
+    }
+  }
+}
+
+/**
+ * Custom submit handler.
+ */
+function asset_widget_base_form_submit_delete($form, &$form_state) {
+  if (!empty($form_state['redirect'])) {
+    if (($url = drupal_parse_url($form_state['redirect'])) && !empty($_GET['asset_frame'])) {
+      $url['query']['asset_frame'] = $_GET['asset_frame'];
+      $form_state['redirect'] = array(
+        $url['path'],
+        array(
+          'query' => $url['query'],
+        ),
+      );
+    }
+  }
+}
+
+/**
+ * Return all possible widget tabs to render.
+ */
+function asset_widget_get_tabs_info($tab_id = FALSE) {
+  $tabs_info = &drupal_static(__FUNCTION__);
+
+  if (!isset($tabs_info)) {
+    $tabs_info = array(
+      'search' => array(
+        'title' => 'Search assets',
+        'content_callback' => 'asset_widget_get_search_form',
+        'arguments' => array('filter_params'),
+        'defaults' => array('filter_params' => array()),
+      ),
+      'results' => array(
+        'title' => 'Search results',
+        'content_callback' => 'asset_widget_get_search_results',
+        'arguments' => array('filter_params', 'dom_id'),
+        'defaults' => array('filter_params' => array(), 'dom_id' => FALSE),
+        // Filter-params special class to show filter params block.
+        'classes' => array('filter-params'),
+      ),
+    );
+
+    // @todo after applying of custom perms patch, rework it.
+    if (user_access('administer assets')) {
+      // Provide separate tab with form for each type, sorted by Asset weight.
+      $types = array();
+      foreach (assets_get_types() as $type) {
+        $types[$type->type]['weight'] = intval($type->weight);
+        $types[$type->type]['title'] = $type->name;
+      }
+      uasort($types, 'drupal_sort_weight');
+
+      foreach ($types as $name => $type) {
+        $tabs_info[$name] = array(
+          'title' => $type['title'],
+          'content_callback' => 'asset_widget_get_asset_form',
+          'arguments' => array('type'),
+          'defaults' => array('type' => $name),
+          'classes' => array('async', 'refresh-content'),
+        );
+      }
+    }
+
+    // Allow to modify set of tabs.
+    drupal_alter('asset_widget_tabs_info', $tabs_info);
+  }
+
+  return $tab_id && isset($tabs_info[$tab_id]) ? $tabs_info[$tab_id] : $tabs_info;
+}
+
+/**
+ * Build search form renderable array.
+ */
+function asset_widget_get_search_form($filter_params = array()) {
+  $view = views_get_view(variable_get('asset_widget_search_view_name', 'asset_widget_search'));
+  // If we have filter params e.g. for saved search, we set it to view.
+  if (!empty($filter_params)) {
+    parse_str($filter_params, $filter_params);
+    $view->exposed_input = $filter_params;
+  }
+  $view->set_display('default');
+  $view->init_handlers();
+  $exposed_form = $view->display_handler->get_plugin('exposed_form');
+
+  // Our exposed plugin could be rendered only if flag setted.
+  $view->render_exposed_form = TRUE;
+
+  // Handle prefilled params on init form load.
+  if ($filter_params) {
+    asset_widget_set_current_command(array(
+      'command' => 'assetWidgetSetFilterParams',
+      'data' => $filter_params,
+    ));
+  }
+
+  return array(
+    '#markup' => $exposed_form->render_exposed_form(),
+  );
+}
+
+/**
+ * Build search results renderable array.
+ */
+function asset_widget_get_search_results($filter_params = array(), $dom_id = FALSE) {
+  $view = views_get_view(variable_get('asset_widget_search_view_name', 'asset_widget_search'));
+  // Store same dom_id on widget on tab reloads.
+  if ($dom_id) {
+    $view->dom_id = $dom_id;
+  }
+  // If we have filter params e.g. for saved search, we set it to view.
+  if (!empty($filter_params)) {
+    parse_str($filter_params, $filter_params);
+    $view->exposed_input = $filter_params;
+  }
+  $view->set_display('default');
+
+  $views_result = $view->preview();
+
+  asset_widget_set_current_command(array(
+    'command' => 'assetWidgetSetTabViewDomID',
+    'data' => array('results' => $view->dom_id),
+  ));
+
+  // Initially fill params block.
+  asset_widget_set_current_command(array(
+    'command' => 'assetWidgetShowFiltersBlock',
+    'data' => theme(
+      'asset_widget_search_filters_block',
+      array(
+        'search_params' => _asset_widget_views_filters_extract_labels($view),
+        'results' => count($view->result),
+      )
+    ),
+  ));
+
+  asset_widget_set_current_command(array(
+    'command' => 'assetWidgetResetSizeMode',
+    'data' => 'results',
+  ));
+
+  return array(
+    '#markup' => $views_result,
+  );
+}
+
+/**
+ * Render for edit/create asset form.
+ */
+function asset_widget_get_asset_form($type) {
+  // Actually tab will be build on JS side, here we could only pass additional options.
+  $url_type = str_replace('_', '-', $type);
+  asset_widget_set_current_command(array(
+    'command' => 'assetWidgetAddAsyncTab',
+    'data' => array(
+      $type => $url_type,
+    ),
+  ));
+
+  return array('#markup' => '');
+}
+
+/**
+ * Extract exposed values from view's exposed filters and sortings.
+ */
+function _asset_widget_views_get_exposed_values($view) {
+  $values = array();
+  if (!empty($view->exposed_input)) {
+    $values = $view->exposed_input;
+  }
+
+  return $values;
+}
+
+/**
+ * Extract exposed labels from view's filters in 'field title' => 'value' format.
+ */
+function _asset_widget_views_filters_extract_labels($view) {
+  $labels = array();
+
+  if (!empty($view->filter)) {
+    foreach ($view->filter as $handler) {
+      if (!empty($handler->options['exposed'])
+        && !empty($handler->options['expose']['identifier'])
+        && isset($handler->value)) {
+
+        // Also some handlers have specific values handling.
+        $class = get_class($handler);
+        switch ($class) {
+          case 'views_handler_filter_user_name':
+            // Generate $handler->value_options.
+            $handler->admin_summary();
+            break;
+
+          case 'views_handler_filter_in_operator':
+            $handler->get_value_options();
+            break;
+        }
+
+        $value = $handler->value;
+        $label = $handler->options['expose']['label'];
+        if (is_array($value)) {
+          if (!empty($handler->value_options)) {
+            $values = array();
+            foreach ($value as $single_value) {
+              if (isset($handler->value_options[$single_value])) {
+                $values[] = $handler->value_options[$single_value];
+              }
+            }
+            $value = implode(', ', $values);
+          }
+          // Special cases for label and value in views filter groups.
+          elseif (isset($handler->group_info) && is_array($handler->group_info)) {
+            if (isset($handler->options['group_info']['label'])) {
+              $label = $handler->options['group_info']['label'];
+            }
+            if (!empty($view->exposed_input)) {
+              $group_value = isset($view->exposed_input[$handler->options['expose']['identifier']])
+                ? $view->exposed_input[$handler->options['expose']['identifier']] : FALSE;
+            }
+            elseif (isset($view->exposed_data[$handler->options['expose']['identifier']])) {
+              $current_value = array_filter($view->exposed_data[$handler->options['expose']['identifier']]);
+              foreach ($handler->options['group_info']['group_items'] as $key => $item) {
+                $required_values = array_filter($item['value']);
+                // If all items match.
+                if (count(array_intersect($required_values, $current_value)) == count($required_values)) {
+                  $group_value = $key;
+                  break;
+                }
+              }
+            }
+            if (!empty($group_value) && isset($handler->options['group_info']['group_items'][$group_value])) {
+              $value = $handler->options['group_info']['group_items'][$group_value]['title'];
+            }
+            else {
+              $value = FALSE;
+            }
+          }
+          elseif (isset($value['value'])) {
+            $value = $value['value'];
+          }
+          else {
+            $value = implode(', ', $value);
+          }
+        }
+
+        if (!empty($value)) {
+          if (!empty($label)) {
+            $labels[$label] = $value;
+          }
+          else {
+            $labels[] = $value;
+          }
+        }
+      }
+    }
+  }
+
+  return $labels;
+}
+
+/**
+ * Implements hook_views_ajax_data_alter().
+ */
+function asset_widget_views_ajax_data_alter(&$commands, &$view) {
+  // We react only on our exposed plugin to add commands.
+  if (isset($view->display_handler->options['exposed_form'])
+    && $view->display_handler->options['exposed_form']['type'] == 'exposed_form_asset_widget') {
+    $action = isset($_POST['ajax_source']) ? $_POST['ajax_source'] : 'filter';
+
+    // Skip default scroll top.
+    if (count($commands) > 1 && $commands[0]['command'] == 'viewsScrollTop') {
+      array_shift($commands);
+    }
+
+    switch ($action) {
+      case 'pager':
+        $commands[] = array(
+          'command' => 'assetWidgetGotoTab',
+          'data' => 'results',
+        );
+        break;
+
+      case 'filter':
+        $errors = form_get_errors();
+        // If validation failed, reload tab and show errors.
+        if (!empty($errors)) {
+          // Remove default results insert command.
+          $commands = array();
+
+          $commands[] = array(
+            'command' => 'assetWidgetGotoTab',
+            'data' => 'search',
+          );
+
+          $commands[] = array(
+            'command' => 'assetWidgetFormErrors',
+            'data' => $errors,
+          );
+          drupal_get_messages(NULL, TRUE);
+          form_clear_error();
+        }
+        else {
+          $commands[] = array(
+            'command' => 'assetWidgetResetSizeMode',
+            'data' => 'results',
+          );
+
+          // Set filter params into internal vars.
+          $filter_params = drupal_http_build_query(_asset_widget_views_get_exposed_values($view));
+          // @todo we still have problems with cookie.
+          if (variable_get('asset_widget_save_last_search', FALSE)) {
+            global $base_path;
+            setcookie('Drupal_asset_widget_filter_params', $filter_params, (time() + 60 * 60 * 24), $base_path);
+          }
+          $commands[] = array(
+            'command' => 'assetWidgetSetFilterParams',
+            'data' => $filter_params,
+          );
+
+          // Then show search params block.
+          if (!empty($view->result)) {
+            $commands[] = array(
+              'command' => 'assetWidgetShowFiltersBlock',
+              'data' => theme(
+                'asset_widget_search_filters_block',
+                array(
+                  'search_params' => _asset_widget_views_filters_extract_labels($view),
+                  'results' => count($view->result),
+                )
+              ),
+            );
+          }
+          else {
+            $commands[] = array(
+              'command' => 'assetWidgetRemoveFiltersBlock',
+            );
+          }
+
+          $commands[] = array(
+            'command' => 'assetWidgetGotoTab',
+            'data' => 'results',
+          );
+        }
+        break;
+    }
+  }
+}
+
+/**
+ * Provide static storage for current commands.
+ */
+function asset_widget_set_current_command($command) {
+  $commands = &drupal_static('asset_widget_commands');
+  $commands[] = $command;
+}
+
+/**
+ * Return currently setted commands.
+ */
+function asset_widget_get_current_commands() {
+  $commands = drupal_static('asset_widget_commands');
+  return $commands ? $commands : array();
+}
+
+/**
+ * Provide static storage for enabled asset types.
+ */
+function asset_widget_get_assets_types() {
+  $assets_types = &drupal_static(__FUNCTION__);
+  if (!isset($assets_types)) {
+    $types = assets_get_types();
+    $assets_types = is_array($types) ? array_keys($types) : array();
+  }
+  return $assets_types;
+}
+
+/**
+ * Implements hook_theme().
+ */
+function asset_widget_theme() {
+  $base = array(
+    'path' => ASSET_WIDGET_MODULE_PATH . '/theme',
+  );
+
+  return array(
+    'asset_widget_wrapper' => array(
+      'template' => 'asset-widget-wrapper',
+      'file' => 'theme.inc',
+    ) + $base,
+    // Global theme item for all custom asset types.
+    'asset__widget_search' => array(
+      'render element' => 'element',
+      'template' => 'asset--widget-search',
+      'file' => 'theme.inc',
+    ) + $base,
+    'asset_wrapper__widget_search' => array(
+      'render element' => 'element',
+      'template' => 'asset-wrapper--widget-search',
+    ) + $base,
+    // Misc.
+    'asset_widget_edit_buttons' => array(
+      'variables' => array(
+        'asset' => NULL,
+      ),
+      'render element' => 'element',
+      'template' => 'asset-widget-edit-buttons',
+      'file' => 'theme.inc',
+    ) + $base,
+    'asset_widget_view_mode_switch_block' => array(
+      'variables' => array(
+        'asset' => NULL,
+      ),
+      'render element' => 'element',
+      'file' => 'theme.inc',
+    ) + $base,
+    'asset_widget_search_filters_block' => array(
+      'variables' => array('search_params' => array(), 'results' => 0),
+      'template' => 'asset-widget-search-filters-block',
+      'file' => 'theme.inc',
+    ) + $base,
+    'asset_widget_asset_form_page' => array(
+      'render element' => 'page',
+      'template' => 'asset-widget-asset-form-page',
+      'file' => 'theme.inc',
+    ) + $base,
+  );
+}
+
+/**
+ * Process variables for entity.tpl.php.
+ */
+function asset_widget_preprocess_entity(&$vars) {
+  if ($vars['entity_type'] == 'asset') {
+    // Add suggestion for common template.
+    $vars['theme_hook_suggestions'][] = $vars['entity_type'] . '__' . $vars['view_mode'];
+
+    // Include file with preprocesses.
+    module_load_include('inc', 'asset_widget', 'theme/theme');
+
+    // Run existing preprocesses.
+    foreach (array_reverse($vars['theme_hook_suggestions']) as $suggestion) {
+      $preprocess = "template_preprocess_$suggestion";
+      if (function_exists($preprocess)) {
+        $preprocess($vars);
+        // Note, that we call only one preprocess, but it could be easily changed.
+        break;
+      }
+    }
+  }
+}
+
+/**
+ * Preprocess variables for asset-wrapper.tpl.php.
+ *
+ * @see asset-wrapper.tpl.php
+ */
+function asset_widget_preprocess_asset_wrapper(&$vars) {
+  $element = $vars['element'];
+  // Add custom suggestion for our view mode.
+  if ($element['#view_mode'] == 'widget_search') {
+    $asset = $element['#entity'];
+    $base = 'asset_wrapper';
+    if (!empty($asset->in_editor)) {
+      $base = 'asset_editor_wrapper';
+    }
+    // Add suggestion for common template.
+    $vars['theme_hook_suggestions'][] = $base . '__widget_search';
+  }
+}
+
+/**
+ * Implements hook_page_alter().
+ */
+function asset_widget_page_alter(&$page) {
+  // Remove all except form part from page via custom page theming.
+  if (asset_widget_in_frame_form()) {
+    // Add specific library for inner widget forms.
+    drupal_add_library('asset_widget', 'asset_widget_inner_form');
+
+    unset($page['page_top']);
+    unset($page['page_bottom']);
+
+    $page['#theme'] = 'asset_widget_asset_form_page';
+  }
+  elseif (asset_widget_add_to_page()) {
+    // Add our widget to page far from form to avoid any rebuilding.
+    drupal_add_library('asset_widget', 'asset_widget');
+    $page['content']['asset_widget'] = array('#markup' => theme('asset_widget_wrapper'));
+  }
+}
+
+/**
+ * Implements hook_image_default_styles().
+ */
+function asset_widget_image_default_styles() {
+  $styles = array();
+
+  // Exported image style: asset_image_widget_search.
+  $styles['asset_image_widget_search'] = array(
+    'name' => 'asset_image_widget_search',
+    'effects' => array(
+      0 => array(
+        'label' => 'Scale and crop',
+        'help' => 'Scale and crop will maintain the aspect-ratio of the original image, then crop the larger dimension. This is most useful for creating perfectly square thumbnails without stretching the image.',
+        'effect callback' => 'image_scale_and_crop_effect',
+        'dimensions callback' => 'image_resize_dimensions',
+        'form callback' => 'image_resize_form',
+        'summary theme' => 'image_resize_summary',
+        'module' => 'image',
+        'name' => 'image_scale_and_crop',
+        'data' =>
+        array(
+          'width' => '100',
+          'height' => '100',
+        ),
+        'weight' => '1',
+      ),
+    ),
+  );
+
+  // Exported image style: asset_image_widget_search_tooltip.
+  $styles['asset_image_widget_search_tooltip'] = array(
+    'name' => 'asset_image_widget_search_tooltip',
+    'module' => 'asset_widget',
+    'effects' =>
+    array(
+      0 =>
+      array(
+        'label' => 'Scale',
+        'help' => 'Scaling will maintain the aspect-ratio of the original image. If only a single dimension is specified, the other dimension will be calculated.',
+        'effect callback' => 'image_scale_effect',
+        'dimensions callback' => 'image_scale_dimensions',
+        'form callback' => 'image_scale_form',
+        'summary theme' => 'image_scale_summary',
+        'module' => 'image',
+        'name' => 'image_scale',
+        'data' =>
+        array(
+          'width' => '300',
+          'height' => '300',
+          'upscale' => 0,
+        ),
+        'weight' => '1',
+      ),
+    ),
+  );
+
+  return $styles;
+}
+
+/**
+ * Process variables for views-view-unformatted.tpl.php.
+ *
+ * @see views-view-unformatted.tpl.php
+ */
+function asset_widget_preprocess_views_view_unformatted(&$vars) {
+  if (isset($vars['theme_hook_suggestion'])) {
+    $function = 'asset_widget_preprocess_' . $vars['theme_hook_suggestion'];
+    if (function_exists($function)) {
+      $function($vars);
+    }
+  }
+}
+
+/**
+ * Preprocess variables for views-view-unformatted--asset-widget-search.tpl.php.
+ *
+ * @see views-view-unformatted--asset-widget-search.tpl.php
+ */
+function asset_widget_preprocess_views_view_unformatted__asset_widget_search(&$vars) {
+  // Add specific classes.
+  if ($vars['view']->result) {
+    foreach ($vars['view']->result as $key => $result) {
+      // Default classes.
+      $classes = array(
+        'item',
+        'item-drag',
+      );
+
+      if ($key == 0) {
+        $classes[] = 'first';
+      }
+
+      // Because of slice we should load asset here, to know it's type.
+      if ($result->aid && ($asset = asset_load($result->aid))) {
+        $classes[] = "match-$asset->type";
+      }
+
+      $vars['wrapper_classes'][$key] = implode(' ', $classes);
+    }
+  }
+}

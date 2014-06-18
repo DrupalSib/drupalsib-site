@@ -1,0 +1,18 @@
+/* Tooltip elements style */
+body {
+  background: #FFFFFF;
+}
+body.tooltip-iframe-element-body {
+  background: transparent;
+  margin: 0;
+  padding: 0;
+}
+
+.tooltip-iframe-body-element {
+  float: left;
+}
+
+.tooltip-iframe-elements {
+  padding: 10px;
+  overflow: hidden;
+}

@@ -1,0 +1,7 @@
+<?php
+/**
+ * @file
+ * Code for the dssocial_core_feature_search feature.
+ */
+
+include_once 'dssocial_core_feature_search.features.inc';

@@ -1,0 +1,169 @@
+
+.assets-module .views-exposed-form .views-exposed-widget{
+	padding: 0;
+}
+
+.assets-module .views-exposed-form .views-exposed-widget .form-type-select select{
+	width: 273px;
+}
+
+.assets-module .assets-module-inner .assets-content .tab-contents .tab-contents-bottom .mid .tab .form-wrap .mid .views-operator .form-item{
+	margin: 0;
+}
+
+.assets-module .assets-module-inner .assets-content .tab-contents .tab-contents-bottom .mid .tab .form-wrap .mid .form-item{
+	margin: 0;
+  padding: 9px 0;
+  background: none;
+  border: none;
+}
+
+.assets-module .views-exposed-widget input.form-submit,
+.assets-module .views-exposed-widget input.form-submit:focus{
+	background: #f5f2ee;
+  border-right: 1px solid #fff;
+  border-top: 1px solid #fff;
+  -webkit-border-radius: 3px 3px;
+  -moz-border-radius: 3px 3px;
+  -ms-border-radius: 3px 3px;
+  -o-border-radius: 3px 3px;
+  border-radius: 3px 3px;
+  -webkit-box-shadow: 1px 2px 3px #b5b5b5;
+  -moz-box-shadow: 1px 2px 3px #b5b5b5;
+  box-shadow: 1px 2px 3px #b5b5b5;
+  background-image: -webkit-gradient(linear, 50% 0%, 50% 100%, color-stop(0%, #f5f5f5), color-stop(100%, #eaeaea));
+  background-image: -webkit-linear-gradient(#f5f5f5, #eaeaea);
+  background-image: -moz-linear-gradient(#f5f5f5, #eaeaea);
+  background-image: -o-linear-gradient(#f5f5f5, #eaeaea);
+  background-image: linear-gradient(#f5f5f5, #eaeaea);
+  height: 38px;
+	line-height: 38px;
+	padding: 0px 30px;
+	font-size: 12px;
+	font-weight: bold;
+	text-transform: uppercase;
+	font-family: Helvetica, Arial, sans-serif, Garuda, FreeSans;
+	outline: none;
+}
+
+.assets-module .views-exposed-widget input.form-submit:focus{
+	border-color: transparent;
+	text-shadow: none;
+}
+
+.assets-module .views-exposed-widget input.form-submit:hover{
+	color: #c16f4c;
+}
+
+.assets-module .assets-module-inner .assets-content .tab-contents .tab-contents-bottom .mid .tab .form-wrap .mid .form-item #autocomplete{
+	margin: 0 !important;
+}
+
+.assets-module .assets-module-inner .assets-content .tab-contents .tab-contents-bottom .mid .tab .form-wrap .mid .views-exposed-widget{
+	position: relative;
+	margin: 0 0 15px;
+}
+
+.assets-module .assets-module-inner .assets-content .tab-contents .tab-contents-bottom .mid .tab .form-wrap .mid .views-exposed-widget .description{
+	margin: 0;
+}
+
+.assets-module .assets-module-inner .assets-content .tab-contents .tab-contents-bottom .mid .tab .form-wrap .mid .views-exposed-widget .input-tooltip {
+  position: absolute;
+  display: block;
+  padding: 10px 0 0;
+  top: 95%;
+  left: 0;
+  max-width: 273px;
+}
+
+.assets-module .assets-module-inner .assets-content .tab-contents .tab-contents-bottom .mid .tab .form-wrap .mid .views-exposed-widget .input-tooltip .input-tooltip-inner {
+  position: relative;
+  padding: 11px 11px 9px 12px;
+  background: #f4efe7;
+  border-right: 1px solid #fff;
+  -webkit-border-radius: 3px;
+  -moz-border-radius: 3px;
+  -ms-border-radius: 3px;
+  -o-border-radius: 3px;
+  border-radius: 3px;
+  *zoom: 1;
+  -webkit-box-shadow: 0 3px 7px #b5b5b5;
+  -moz-box-shadow: 0 3px 7px #b5b5b5;
+  box-shadow: 0 3px 7px #b5b5b5;
+}
+
+.assets-module .assets-module-inner .assets-content .tab-contents .tab-contents-bottom .mid .tab .form-wrap .mid .views-exposed-widget .input-tooltip .input-tooltip-inner:after {
+  content: "\0020";
+  display: block;
+  height: 0;
+  clear: both;
+  overflow: hidden;
+  visibility: hidden;
+}
+
+.assets-module .assets-module-inner .assets-content .tab-contents .tab-contents-bottom .mid .tab .form-wrap .mid .views-exposed-widget .input-tooltip .input-tooltip-inner .pointer {
+  display: block;
+  position: absolute;
+  top: -10px;
+  left: 20px;
+  width: 11px;
+  height: 10px;
+  background: url('../images/sprite-a.png') no-repeat -197px -226px;
+  z-index: 100;
+}
+
+.assets-module .assets-module-inner .assets-content .tab-contents .tab-contents-bottom .mid .view-x5 .item-inner .pic img{
+  height: 50px;
+  width: 50px;
+}
+
+.assets-module .assets-module-inner .assets-content .tab-contents .tab-contents-bottom .mid .tab .form-wrap .mid .views-widget-filter-type .input-tooltip{
+  display: none;
+}
+
+/*--Rubik themes style fixes--*/
+
+/*--Pager styles--*/
+
+.assets-module .pager-container .item-list{
+  background: none;
+  border: none;
+  margin: 0;
+}
+
+.assets-module .item-list .pager{
+  font-size: 11px;
+}
+
+.assets-module .item-list .pager a,
+.assets-module .item-list .pager span{
+  background: none;
+  padding: 0;
+}
+
+.assets-module .pager li{
+  position: static;
+  height: auto;
+  border: none;
+  background: none;
+}
+
+.assets-module .pager li a:hover{
+  background-color: transparent;
+}
+
+.assets-module .pager li.pager-current{
+  background-color: transparent;
+}
+
+.assets-module .pager a,
+.assets-module .pager span,
+.assets-module .primary-tabs a{
+  float: none;
+}
+
+/*--end pager styles--*/
+
+
+/*--end rubik themes style fixes--*/

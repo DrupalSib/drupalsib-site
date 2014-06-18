@@ -1,0 +1,62 @@
+<?php
+/**
+ * @file
+ * dssocial_core_feature_content_dossier.features.user_permission.inc
+ */
+
+/**
+ * Implements hook_user_default_permissions().
+ */
+function dssocial_core_feature_content_dossier_user_default_permissions() {
+  $permissions = array();
+
+  // Exported permission: create dossier content.
+  $permissions['create dossier content'] = array(
+    'name' => 'create dossier content',
+    'roles' => array(
+      0 => 'editor',
+      1 => 'moderator',
+    ),
+    'module' => 'node',
+  );
+
+  // Exported permission: delete any dossier content.
+  $permissions['delete any dossier content'] = array(
+    'name' => 'delete any dossier content',
+    'roles' => array(
+      0 => 'moderator',
+    ),
+    'module' => 'node',
+  );
+
+  // Exported permission: delete own dossier content.
+  $permissions['delete own dossier content'] = array(
+    'name' => 'delete own dossier content',
+    'roles' => array(
+      0 => 'editor',
+      1 => 'moderator',
+    ),
+    'module' => 'node',
+  );
+
+  // Exported permission: edit any dossier content.
+  $permissions['edit any dossier content'] = array(
+    'name' => 'edit any dossier content',
+    'roles' => array(
+      0 => 'moderator',
+    ),
+    'module' => 'node',
+  );
+
+  // Exported permission: edit own dossier content.
+  $permissions['edit own dossier content'] = array(
+    'name' => 'edit own dossier content',
+    'roles' => array(
+      0 => 'editor',
+      1 => 'moderator',
+    ),
+    'module' => 'node',
+  );
+
+  return $permissions;
+}

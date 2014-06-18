@@ -1,0 +1,32 @@
+.asset.editor {
+  cursor: default;
+  margin: 10px 0;
+  padding: 5px 10px;
+  background: #F4F1ED;
+  box-shadow: 0 0 15px #e1dede inset;
+  clear: both;
+}
+
+.asset.editor.selected {
+  background: #FDFDEE;
+  box-shadow: 0 0 15px #e1dede inset;
+}
+
+.asset.editor.selected:hover {
+  background: #F3E1DB;
+  box-shadow: 0 0 15px #D7C9C4 inset;
+}
+
+.asset.editor .content {
+  padding:5px 0;
+}
+
+.asset.editor.asset-align-left {
+  margin: 0 8px 0 0;
+  float: left;
+}
+
+.asset.editor.asset-align-right {
+  margin: 0 0 0 8px;
+  float: right;
+}

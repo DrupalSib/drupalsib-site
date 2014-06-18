@@ -1,0 +1,84 @@
+#!/usr/bin/php
+<?php
+/**
+ * @file
+ * git pre-commit hook script to check files against the drupal coding standard
+ * requires phpcs and drupalcodesniffer. for installation of those see:
+ * http://drupal.org/project/drupalcs
+ */
+
+// Building an array of ignored files and folders.
+$file_path = __DIR__ . '/../../.dcq_ignore';
+$ignore = array();
+if (file_exists($file_path)) {
+  $file = fopen($file_path, "r");
+  if ($file) {
+    while (!feof($file)) {
+      $ignore[] = fgets($file);
+    }
+  }
+}
+
+$standard = 'Drupal';
+$file_exts = array(
+  'php',
+  'module',
+  'inc',
+  'install',
+  'test',
+  'profile',
+  'theme',
+  'txt',
+);
+
+$exit_code = 0;
+$files = array();
+$return = 0;
+exec('git rev-parse --verify HEAD 2> /dev/null', $files, $ret);
+$against = ($ret == 0) ? 'HEAD' : '4b825dc642cb6eb9a060e54bf8d69288fbee4904';
+
+exec("git diff-index --cached --name-only $against", $files);
+
+print "\nPrecommit\n\n";
+
+// The number of ignored items.
+$ignored_items_count = count($ignore);
+
+foreach ($files as $file) {
+
+  if (file_exists($file) && !is_dir($file)) {
+
+    // Check files to ignore.
+    if ($ignored_items_count > 0) {
+      foreach ($ignore as $key => $value) {
+        if (substr($file, 0, strlen(trim($value))) == trim($value) && trim($value) != '') {
+          echo "\033[0;31mIgnored  $file\n\033[0m";
+          continue 2;
+        }
+      }
+    }
+
+    echo "\033[0;32mChecking file $file\n\033[0m";
+
+    $ext = pathinfo($file, PATHINFO_EXTENSION);
+
+    if (!in_array($ext, $file_exts)) {
+      continue;
+    }
+
+    $phpcs_output = array();
+    $extensions = implode(',', $file_exts);
+
+    $file = escapeshellarg($file);
+    $phpcs_cmd = "phpcs --standard=$standard --extensions=$extensions $file";
+    exec($phpcs_cmd, $phpcs_output, $ret);
+    if ($ret == 0) {
+      continue;
+    }
+    // This is where any output from phpcs is displayed.
+    echo implode("\n", $phpcs_output), "\n";
+    $exit_code = 1;
+  }
+}
+
+exit($exit_code);

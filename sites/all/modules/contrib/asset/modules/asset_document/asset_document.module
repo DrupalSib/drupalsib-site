@@ -1,0 +1,23 @@
+<?php
+/**
+ * @file
+ * Code for the Sample Asset Document.
+ */
+
+/**
+ * Implements hook_default_asset_type().
+ */
+function asset_document_default_asset_type() {
+  $items = array();
+  $items['document'] = entity_import('asset_type', '{
+    "type" : "document",
+    "name" : "Document",
+    "icon" : "AddDocument.png",
+    "description" : "",
+    "help" : "",
+    "weight" : "1",
+    "locked" : "0",
+    "rdf_mapping" : []
+  }');
+  return $items;
+}

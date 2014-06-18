@@ -1,0 +1,11 @@
+name = dssocial_core_feature_nodequeue
+description = Nodequeue feature
+core = 7.x
+package = Features
+php = 5.2.4
+version = 7.x-1.0
+project = dssocial_core_feature_nodequeue
+dependencies[] = fe_nodequeue
+features[fe_nodequeue][] = headline_slider
+features[fe_nodequeue][] = headline_tiles
+features[features_api][] = api:1

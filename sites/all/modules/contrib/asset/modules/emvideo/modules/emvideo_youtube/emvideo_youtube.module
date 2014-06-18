@@ -1,0 +1,32 @@
+<?php
+/**
+ * @file
+ * Emvideo youtube module.
+ */
+
+/**
+ * Implements hook_emvideo_parse().
+ */
+function emvideo_youtube_emvideo_parse($url) {
+  $matches = array();
+  if (preg_match('@^(?:https?\:\/\/)?(?:www\.)?youtu(?:|\.be|be\.com)(\/watch|\/embed|\/v/|\/)+((.*)?[\&\?]v=)?([^"\& ]+)@i', $url, $matches)) {
+    $hosts = array(
+      'i.ytimg.com',
+      'i1.ytimg.com',
+      'i2.ytimg.com',
+      'i3.ytimg.com',
+      'i4.ytimg.com',
+      'img.youtube.com',
+    );
+
+    $host = $hosts[array_rand($hosts)];
+
+    return array(
+      'source' => 'http://www.youtube.com/v/' . $matches[4],
+      'provider' => 'youtube',
+      'snapshot' => 'http://' . $host . '/vi/' . $matches[4] . '/0.jpg',
+    );
+  }
+
+  return FALSE;
+}
